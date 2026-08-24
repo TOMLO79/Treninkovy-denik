@@ -332,11 +332,12 @@
   <div id="formView">
 
     <div class="section open" id="pinnedSection">
-      <div class="section-head" style="cursor:default">
+      <div class="section-head" onclick="togglePinnedCollapse(this)">
         <div class="section-head-left"><span class="section-dot filled"></span>
           <div><div class="section-title">⭐ Rychlý přístup</div><div class="section-sub">Připnuté cviky · pořadí měníš šipkami ▲▼</div></div></div>
+        <span class="chev">▾</span>
       </div>
-      <div class="section-body" style="max-height:none"><div class="section-body-inner" id="pinnedBody"></div></div>
+      <div class="section-body"><div class="section-body-inner" id="pinnedBody"></div></div>
     </div>
 
     <div class="section open" data-key="meta">
@@ -567,7 +568,7 @@
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">📝 Zápis (hlavní obrazovka)</div>
       <p class="help-p">Nahoře je "hodinkový" přehled (číslo tréninku, délka, TSS) a stopky — Start/Reset ti automaticky vyplní čas začátku/konce a délku tréninku.</p>
-      <p class="help-p"><b>⭐ Rychlý přístup</b> — cviky, které si připneš hvězdičkou ☆ u libovolného cviku níže, se objeví nahoře, ať se u okruhů (např. bench→břicho→nohy dokola) nemusíš pořád proplétat mezi sekcemi. Pořadí připnutých cviků změníš šipkami ▲▼ vlevo od cviku.</p>
+      <p class="help-p"><b>⭐ Rychlý přístup</b> — cviky, které si připneš hvězdičkou ☆ u libovolného cviku níže, se objeví nahoře, ať se u okruhů (např. bench→břicho→nohy dokola) nemusíš pořád proplétat mezi sekcemi. Pořadí připnutých cviků změníš šipkami ▲▼ vlevo od cviku. Celou sekci jde sbalit/rozbalit klepnutím na nadpis — appka si pamatuje, jak jsi ji naposledy nechal, i po zavření appky.</p>
       <p class="help-p"><b>Hlavička</b> — datum, část dne, spánek, pocit, únava, RPE tréninku (viz níže), tělesná váha (předvyplní se z posledního tréninku), volitelně "Navazuje na aktivitu" (např. píšeš trénink co byl po běhu ten samý den).</p>
       <p class="help-p"><b>RPE tréninku (1–10)</b> — jedno číslo za celý trénink, jak blízko selhání jsi byl v nejtěžších sériích (10 = na doraz, nedáš už ani jedno opakování). Appka ti hned ukáže i přepočet na RIR (opakování v rezervě). Je to jiná metrika než Únava — únava je "jak jsem celkově vyřízený", RPE je čistě "jak blízko limitu jsem šel".</p>
       <p class="help-p"><b>Cviky ve skupinách</b> — klepni na skupinu (Bench, Core, Nohy...) a rozbalí se. Ke každému cviku je teď malé vstupní pole "+" na jednu sérii — napíšeš číslo, po ~2,5s ticha (nebo klepnutím jinam / Enterem) se série uloží s přesným časem a pole se vyprázdní na další. Uložené série vidíš jako malé "kostičky" vedle názvu, čas poslední série je vpravo. Tužtičkou ✏️ otevřeš editaci — tam vidíš čas každé série zvlášť, můžeš opravit hodnotu nebo sérii smazat 🗑. Tímto appka sbírá skutečná časová razítka ke každé sérii, ne jen odhad — časem z toho půjde počítat trend výkonu/RPE v průběhu tréninku.</p>
@@ -587,7 +588,7 @@
 
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">🏃 Sporty</div>
-      <p class="help-p">Podobný editor jako Cviky, ale pro sportovní aktivity (Běh, Capoeira...). Vybíráš, která pole se mají sledovat (vzdálenost, tempo, TF, VO2max...). Nový sport přidáš tlačítkem dole.</p>
+      <p class="help-p">Podobný editor jako Cviky, ale pro sportovní aktivity (Běh, Capoeira...). Vybíráš, která pole se mají sledovat (vzdálenost, tempo, TF, VO2max...). U Běhu appka umí i "Váha před" a "Váha po" — "Váha před" se sama předvyplní z hlavičkové váhy nahoře (nemusíš ji zadávat dvakrát, ale klidně ji přepiš, pokud se před tím ještě zvážíš zvlášť), doplňuješ tak jen "Váhu po". Appka z rozdílu spočítá odhad úbytku tekutin (v gramech). Nový sport přidáš tlačítkem dole.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
@@ -793,10 +794,12 @@ const SPORT_FIELD_DEFS = [
   {k:"hrMax", label:"TF max (bpm)", type:"number"},
   {k:"tss", label:"TSS", type:"number"},
   {k:"vo2max", label:"Odhad VO2max", type:"text"},
+  {k:"weightBefore", label:"Váha před (kg)", type:"number"},
+  {k:"weightAfter", label:"Váha po (kg)", type:"number"},
 ];
 function defaultSports(){
-  return { version:3, sports:[
-    { id:"s_run", icon:"🏃", title:"Běh", fields:["duration","km","tempo","elevation","steps","vo2max"] },
+  return { version:4, sports:[
+    { id:"s_run", icon:"🏃", title:"Běh", fields:["duration","km","tempo","elevation","steps","vo2max","weightBefore","weightAfter"] },
     { id:"s_capoeira", icon:"🤸", title:"Capoeira", fields:["duration","hrAvg","hrMax"] }
   ]};
 }
@@ -810,6 +813,14 @@ function upgradeSportsToV3(sp){
   const run = sp.sports.find(s=>s.id==="s_run");
   if(run && !run.fields.includes("vo2max")) run.fields.push("vo2max");
   sp.version = 3;
+}
+function upgradeSportsToV4(sp){
+  const run = sp.sports.find(s=>s.id==="s_run");
+  if(run){
+    if(!run.fields.includes("weightBefore")) run.fields.push("weightBefore");
+    if(!run.fields.includes("weightAfter")) run.fields.push("weightAfter");
+  }
+  sp.version = 4;
 }
 
 const META_FIELDS = [
@@ -960,6 +971,7 @@ function loadSports(){
   else {
     if(!SPORTS.version || SPORTS.version < 2) upgradeSportsToV2(SPORTS);
     if(SPORTS.version < 3) upgradeSportsToV3(SPORTS);
+    if(SPORTS.version < 4) upgradeSportsToV4(SPORTS);
   }
   persistSports();
 }
@@ -1352,12 +1364,30 @@ function updatePinStarsUI(exId, weight){
     btn.textContent = pinned ? "⭐" : "☆";
   });
 }
+const PINNED_COLLAPSE_KEY = "trenink_pinned_collapsed_v1";
+function togglePinnedCollapse(headEl){
+  const section = headEl.parentElement;
+  const willOpen = !section.classList.contains("open");
+  section.classList.toggle("open", willOpen);
+  const body = section.querySelector(".section-body");
+  body.style.maxHeight = willOpen ? body.scrollHeight + "px" : null;
+  localStorage.setItem(PINNED_COLLAPSE_KEY, willOpen ? "open" : "closed");
+}
+function applyPinnedCollapseState(){
+  const section = document.getElementById("pinnedSection");
+  if(!section) return;
+  const isOpen = localStorage.getItem(PINNED_COLLAPSE_KEY) !== "closed";
+  section.classList.toggle("open", isOpen);
+  const body = section.querySelector(".section-body");
+  body.style.maxHeight = isOpen ? body.scrollHeight + "px" : null;
+}
 function renderPinnedSection(){
   const wrap = document.getElementById("pinnedBody");
   if(!wrap) return;
   wrap.innerHTML = "";
   if(pinnedRows.length===0){
     wrap.innerHTML = `<div class="section-note">Zatím nic není připnuté. Klepni na ☆ u cviku níže (třeba Bench, Core, Dřepy pro tvůj okruh) — objeví se tady nahoře, ať se mezi sekcemi nemusíš furt proplétat.</div>`;
+    applyPinnedCollapseState();
     return;
   }
   pinnedRows.forEach((key, i)=>{
@@ -1389,6 +1419,7 @@ function renderPinnedSection(){
     renderSetChips(exId, weight);
     updateExTimeBadgeForKey(key);
   });
+  applyPinnedCollapseState();
 }
 function movePinned(idx, dir){
   const j = idx+dir;
@@ -1675,6 +1706,9 @@ function renderSportSections(){
   SPORTS.sports.forEach(sp=>{
     const body = document.getElementById("sportBody_"+sp.id);
     ensureSportData(current, sp);
+    if(sp.fields.includes("weightBefore") && !current.sports[sp.id].weightBefore && current.meta.weight){
+      current.sports[sp.id].weightBefore = current.meta.weight;
+    }
     const defs = SPORT_FIELD_DEFS.filter(f=> sp.fields.includes(f.k));
     body.innerHTML = defs.map(f=>`
       <div class="field"><label>${f.label}</label>
@@ -1712,6 +1746,12 @@ function renderSportDerived(sp, body){
   }
   if(cadence>0 && duration>0){
     rows.push({l:"Odhad počtu kroků", v: Math.round(cadence*duration).toLocaleString("cs-CZ")});
+  }
+  const wBefore = parseFloat(d.weightBefore)||0, wAfter = parseFloat(d.weightAfter)||0;
+  if(wBefore>0 && wAfter>0){
+    const lossKg = wBefore-wAfter;
+    const label = lossKg>=0 ? "Úbytek tekutin (odhad)" : "Přírůstek váhy";
+    rows.push({l:label, v: Math.round(Math.abs(lossKg)*1000).toLocaleString("cs-CZ")+" g"});
   }
   host.innerHTML = rows.map(r=>`<div class="derived-row"><span class="l">${r.l}</span><span class="v">${r.v}</span></div>`).join("");
 }
