@@ -118,6 +118,14 @@
   .bodylog-thumb{width:44px;height:44px;border-radius:9px;object-fit:cover;flex:none;border:1px solid var(--border);cursor:pointer;}
   .bodylog-thumb-empty{background:var(--surface-2);}
   .bodylog-info{flex:1;min-width:0;}
+  .bodylog-row-wrap{border-bottom:1px dashed var(--border);}
+  .bodylog-row-wrap:last-child{border-bottom:none;}
+  .bodylog-row-wrap .bodylog-row{border-bottom:none;padding-bottom:4px;}
+  .bodylog-edit{background:none;border:none;color:var(--faint);font-size:0.9rem;padding:4px;cursor:pointer;flex:none;}
+  .bodylog-edit-panel{background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:10px 12px;margin:2px 0 10px 0;}
+  .measure-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:8px;}
+  .measure-field label{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:3px;}
+  .measure-field input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 8px;font-family:var(--mono);font-size:0.85rem;}
   .mv-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--border);}
   .mv-row:last-child{border-bottom:none;}
   .mv-label{flex:0 0 92px;font-size:0.8rem;color:var(--text);}
@@ -588,7 +596,7 @@
 
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">🏃 Sporty</div>
-      <p class="help-p">Podobný editor jako Cviky, ale pro sportovní aktivity (Běh, Capoeira...). Vybíráš, která pole se mají sledovat (vzdálenost, tempo, TF, VO2max...). U Běhu appka umí i "Váha před" a "Váha po" — "Váha před" se sama předvyplní z hlavičkové váhy nahoře (nemusíš ji zadávat dvakrát, ale klidně ji přepiš, pokud se před tím ještě zvážíš zvlášť), doplňuješ tak jen "Váhu po". Appka z rozdílu spočítá odhad úbytku tekutin (v gramech). Nový sport přidáš tlačítkem dole.</p>
+      <p class="help-p">Podobný editor jako Cviky, ale pro sportovní aktivity (Běh, Capoeira, Strečink...). Vybíráš, která pole se mají sledovat (vzdálenost, tempo, TF, VO2max...). U Běhu appka umí i "Váha před" a "Váha po" — "Váha před" se sama předvyplní z hlavičkové váhy nahoře (nemusíš ji zadávat dvakrát, ale klidně ji přepiš, pokud se před tím ještě zvážíš zvlášť), doplňuješ tak jen "Váhu po". Appka z rozdílu spočítá odhad úbytku tekutin (v gramech). Nový sport přidáš tlačítkem dole.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
@@ -609,7 +617,7 @@
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">🧍 Profil</div>
       <p class="help-p">Výška, datum narození, pohlaví, klidová TF — appka z toho spočítá věk, BMI (s pásmy podváha/normální/nadváha/obezita), BMR, odhad denní kalorické potřeby a tréninkové zóny tepové frekvence. Váha se bere automaticky z posledního tréninku.</p>
-      <p class="help-p"><b>📏 Tělesné míry a fotky</b> — nezávislý periodický log (nemusíš vyplňovat každý trénink, stačí třeba jednou za 1–2 týdny). Zapíšeš obvody (pas, hrudník, paže, stehno, boky), krevní tlak (systola/diastola — měř ideálně vždy ve stejnou denní dobu a v klidu, ať je trend srovnatelný) a/nebo přidáš fotky postavy — jeden záznam může mít víc fotek najednou (např. zezadu/zboku/zepředu), appka je sama zmenší a zkomprimuje, ať zbytečně nezabírají místo. Dole vidíš graf vývoje obvodů a chronologický seznam všech záznamů s náhledy fotek (klepnutím na náhled se otevře na celou obrazovku, křížkem u fotky smažeš jen tu jednu fotku). Pozor: appka data ukládá jen v telefonu (localStorage), který má omezenou kapacitu — pokud by nešlo uložit další fotku, appka tě na to upozorní; pomůže smazat pár starších fotek nebo použít Zálohu (viz níže), která fotky/míry taky obsahuje.</p>
+      <p class="help-p"><b>📏 Tělesné míry a fotky</b> — nezávislý periodický log (nemusíš vyplňovat každý trénink, stačí třeba jednou za 1–2 týdny). Zapíšeš obvody (pas, hrudník, paže, stehno, boky), krevní tlak (systola/diastola — měř ideálně vždy ve stejnou denní dobu a v klidu, ať je trend srovnatelný) a/nebo přidáš fotky postavy — jeden záznam může mít víc fotek najednou (např. zezadu/zboku/zepředu), appka je sama zmenší a zkomprimuje, ať zbytečně nezabírají místo. Dole vidíš graf vývoje obvodů a chronologický seznam všech záznamů s náhledy fotek (klepnutím na náhled se otevře na celou obrazovku, křížkem u fotky smažeš jen tu jednu fotku). Tužtičkou ✏️ u záznamu jde kdykoliv zpětně opravit datum, míry i poznámku, fotky přitom zůstanou — nemusíš kvůli překlepu mazat celý záznam. Pozor: appka data ukládá jen v telefonu (localStorage), který má omezenou kapacitu — pokud by nešlo uložit další fotku, appka tě na to upozorní; pomůže smazat pár starších fotek nebo použít Zálohu (viz níže), která fotky/míry taky obsahuje.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
@@ -798,9 +806,10 @@ const SPORT_FIELD_DEFS = [
   {k:"weightAfter", label:"Váha po (kg)", type:"number"},
 ];
 function defaultSports(){
-  return { version:4, sports:[
+  return { version:5, sports:[
     { id:"s_run", icon:"🏃", title:"Běh", fields:["duration","km","tempo","elevation","steps","vo2max","weightBefore","weightAfter"] },
-    { id:"s_capoeira", icon:"🤸", title:"Capoeira", fields:["duration","hrAvg","hrMax"] }
+    { id:"s_capoeira", icon:"🤸", title:"Capoeira", fields:["duration","hrAvg","hrMax"] },
+    { id:"s_stretch", icon:"🧘", title:"Strečink", fields:["duration","hrAvg","hrMax","tss"] }
   ]};
 }
 function upgradeSportsToV2(sp){
@@ -821,6 +830,12 @@ function upgradeSportsToV4(sp){
     if(!run.fields.includes("weightAfter")) run.fields.push("weightAfter");
   }
   sp.version = 4;
+}
+function upgradeSportsToV5(sp){
+  if(!sp.sports.some(s=>s.id==="s_stretch")){
+    sp.sports.push({ id:"s_stretch", icon:"🧘", title:"Strečink", fields:["duration","hrAvg","hrMax","tss"] });
+  }
+  sp.version = 5;
 }
 
 const META_FIELDS = [
@@ -972,6 +987,7 @@ function loadSports(){
     if(!SPORTS.version || SPORTS.version < 2) upgradeSportsToV2(SPORTS);
     if(SPORTS.version < 3) upgradeSportsToV3(SPORTS);
     if(SPORTS.version < 4) upgradeSportsToV4(SPORTS);
+    if(SPORTS.version < 5) upgradeSportsToV5(SPORTS);
   }
   persistSports();
 }
@@ -1167,6 +1183,31 @@ function deleteBodyLogPhoto(entryId, photoIdx){
   persistBodyLog();
   renderBodyLogList();
 }
+let editingBodyLogId = null;
+function toggleBodyLogEdit(id){
+  editingBodyLogId = (editingBodyLogId===id) ? null : id;
+  renderBodyLogList();
+}
+function saveBodyLogEdit(id){
+  const e = bodyLog.find(x=>x.id===id);
+  if(!e) return;
+  const dateEl = document.getElementById("bLogEditDate_"+id);
+  if(dateEl && dateEl.value) e.date = dateEl.value;
+  BODY_METRIC_FIELDS.forEach(f=>{
+    const el = document.getElementById("bLogEdit_"+id+"_"+f.k);
+    if(!el) return;
+    if(el.value!==""){ e[f.k] = parseFloat(el.value); }
+    else delete e[f.k];
+  });
+  const noteEl = document.getElementById("bLogEditNote_"+id);
+  if(noteEl){ if(noteEl.value.trim()) e.note = noteEl.value.trim(); else delete e.note; }
+  bodyLog.sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+  persistBodyLog();
+  editingBodyLogId = null;
+  renderBodyLogList();
+  renderBodyMetricsChart();
+  showToast("Záznam upraven");
+}
 function renderBodyLogList(){
   const host = document.getElementById("bodyLogList");
   if(!host) return;
@@ -1185,14 +1226,26 @@ function renderBodyLogList(){
             <button type="button" class="bodylog-thumb-del" onclick="deleteBodyLogPhoto(${e.id},${i})" title="Smazat fotku">✕</button>
           </div>`).join("")}</div>`
       : `<div class="bodylog-thumb bodylog-thumb-empty"></div>`;
-    return `<div class="bodylog-row">
-      ${thumbs}
-      <div class="bodylog-info">
-        <div class="bodylog-date">${formatDateDisplay(e.date)}</div>
-        <div class="bodylog-metrics">${metrics || "–"}</div>
-        ${e.note ? `<div class="bodylog-note">${e.note}</div>` : ""}
+    return `<div class="bodylog-row-wrap">
+      <div class="bodylog-row">
+        ${thumbs}
+        <div class="bodylog-info">
+          <div class="bodylog-date">${formatDateDisplay(e.date)}</div>
+          <div class="bodylog-metrics">${metrics || "–"}</div>
+          ${e.note ? `<div class="bodylog-note">${e.note}</div>` : ""}
+        </div>
+        <button type="button" class="bodylog-edit" onclick="toggleBodyLogEdit(${e.id})" title="Upravit">✏️</button>
+        <button type="button" class="bodylog-del" onclick="deleteBodyLogEntry(${e.id})">🗑</button>
       </div>
-      <button type="button" class="bodylog-del" onclick="deleteBodyLogEntry(${e.id})">🗑</button>
+      ${editingBodyLogId===e.id ? `
+      <div class="bodylog-edit-panel">
+        <div class="field"><label>Datum</label><input type="date" id="bLogEditDate_${e.id}" value="${e.date||''}"></div>
+        <div class="measure-fields">
+          ${BODY_METRIC_FIELDS.map(f=>`<div class="measure-field"><label>${f.label}</label><input type="number" step="0.1" inputmode="decimal" id="bLogEdit_${e.id}_${f.k}" value="${e[f.k]??''}"></div>`).join("")}
+        </div>
+        <div class="field"><label>Poznámka</label><input type="text" id="bLogEditNote_${e.id}" value="${e.note||''}"></div>
+        <button type="button" class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="saveBodyLogEdit(${e.id})">💾 Uložit úpravu</button>
+      </div>` : ""}
     </div>`;
   }).join("");
 }
@@ -2751,13 +2804,17 @@ function extractSuuntoDuration(text){
 function extractLabeledLineValue(text, labelRegex, position){
   // Suunto karty mají 2 sloupce — OCR čte nejdřív řádek popisků, pak řádek hodnot.
   // Bereme hodnotu z NÁSLEDUJÍCÍHO řádku, na pozici (první/poslední číslo), ne první číslo za slovem.
+  // Někdy se mezi popisek a hodnotu vloudí navíc "šumový" řádek (ikonka ⓘ přečtená jako osamocené "@" apod.) — ty přeskočíme.
   const lines = text.split(/\n/);
   for(let i=0;i<lines.length;i++){
     if(labelRegex.test(lines[i])){
-      const candidates = [lines[i+1]||"", lines[i]];
-      for(const line of candidates){
+      for(let j=i; j<=i+4; j++){
+        const line = lines[j] || "";
+        const trimmed = line.trim();
+        if(j>i && trimmed.length<=2) continue; // prázdný řádek nebo osamocený symbol — šum, přeskočit
         const nums = line.match(/\d+(?:[.,]\d+)?/g);
         if(nums && nums.length) return position==="last" ? nums[nums.length-1] : nums[0];
+        if(j>i && trimmed.length>3) break; // narazili jsme na jiný text bez čísel — konec hledání
       }
     }
   }
