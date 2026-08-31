@@ -1,0 +1,3186 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tréninkový deník</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ff4a00">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deník">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0d0f12; --surface:#171a1f; --surface-2:#1e2229; --border:#2a2f37;
+    --text:#eceef0; --muted:#8b93a1; --faint:#565e69;
+    --accent:#ff4a00; --accent-dim:#ff4a0022;
+    --good:#7ed957; --good-dim:#7ed95722; --gold:#ffc94a; --danger:#ff5c5c;
+    --radius:14px; --mono:'JetBrains Mono', monospace; --sans:'Inter', -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding-bottom:64px;transition:background .2s,color .2s;}
+  .app{max-width:480px;margin:0 auto;padding:0 14px;}
+
+  body[data-theme="light"]{
+    --bg:#f2f3f6; --surface:#ffffff; --surface-2:#eef0f4; --border:#dde1e7;
+    --text:#1b1e23; --muted:#6b7280; --faint:#9aa1ac;
+  }
+  body[data-theme="light"] .dial{ background:radial-gradient(120% 140% at 20% 0%, #ffe9dd 0%, var(--surface) 55%); }
+  body[data-theme="light"] .row input.reps:not(:placeholder-shown){ color:#3c8f2f; }
+  .theme-toggle{flex:none;background:var(--surface);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:50%;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+  .stopwatch-card{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px 14px;margin-top:10px;}
+  .sw-time{font-family:var(--mono);font-size:1.5rem;font-weight:800;color:var(--accent);min-width:64px;}
+  .sw-controls{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+  .sw-controls button{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:9px;font-weight:700;font-size:0.68rem;cursor:pointer;font-family:var(--sans);white-space:nowrap;}
+  .pin-star{background:none;border:none;font-size:1rem;padding:2px 6px 2px 0;cursor:pointer;color:var(--faint);flex:none;line-height:1;}
+  .pin-star.active{color:var(--gold);}
+
+  .backup-banner{background:#ffc94a15;border:1px solid #ffc94a55;color:var(--gold);border-radius:12px;padding:10px 12px;margin:10px 0 0;font-size:0.76rem;display:flex;justify-content:space-between;align-items:center;gap:10px;line-height:1.35;}
+  .backup-banner button{background:var(--gold);color:#2a1d00;border:none;border-radius:8px;padding:7px 10px;font-weight:700;font-size:0.7rem;cursor:pointer;white-space:nowrap;font-family:var(--sans);}
+  .backup-banner button.dismiss{background:none;color:var(--muted);font-size:1rem;padding:0 4px;}
+
+  .zone-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);}
+  .zone-row:last-child{border-bottom:none;}
+  .zone-dot{width:10px;height:10px;border-radius:50%;flex:none;}
+  .zone-name{flex:1;font-size:0.84rem;font-weight:600;}
+  .zone-range{font-family:var(--mono);font-size:0.86rem;color:var(--text);font-weight:700;}
+  .sw-controls button.running{background:var(--danger);color:#fff;border-color:var(--danger);}
+
+  .watchhead{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--bg) 70%, transparent);padding:14px 0 6px;}
+  .watchhead-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;}
+  .brand{display:flex;align-items:baseline;gap:6px;flex:none;}
+  .brand .dot{color:var(--accent);}
+  .brand-title{font-size:0.68rem;letter-spacing:2px;color:var(--muted);font-weight:700;text-transform:uppercase;}
+  .nav-toggle{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex:1;min-width:0;}
+  .nav-toggle button{border:none;background:transparent;color:var(--muted);font-family:var(--sans);font-weight:700;font-size:0.62rem;letter-spacing:0.2px;padding:7px 9px;border-radius:999px;cursor:pointer;text-transform:uppercase;white-space:nowrap;flex:none;}
+  .nav-toggle button.active{background:var(--accent);color:#100800;}
+
+  .dial{background:radial-gradient(120% 140% at 20% 0%, #201812 0%, var(--surface) 55%);border:1px solid var(--border);border-radius:20px;padding:16px 18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;position:relative;overflow:hidden;}
+  .dial::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg, transparent 0 38px, #ffffff05 38px 39px);pointer-events:none;}
+  .dial-metric{text-align:center;padding:6px 2px;}
+  .dial-metric .val{font-family:var(--mono);font-size:1.5rem;font-weight:700;line-height:1;color:var(--text);}
+  .dial-metric .val small{font-size:0.6rem;color:var(--muted);font-weight:500;margin-left:2px;}
+  .dial-metric .lbl{font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:5px;}
+  .dial-metric.accent .val{color:var(--accent);}
+
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-top:12px;overflow:hidden;}
+  .section-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none;}
+  .section-head-left{display:flex;align-items:center;gap:10px;min-width:0;}
+  .section-dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none;}
+  .section-dot.filled{background:var(--good);}
+  .section-title{font-weight:700;font-size:0.95rem;}
+  .section-sub{font-size:0.72rem;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .chev{color:var(--muted);transition:transform .2s ease;font-size:0.8rem;flex:none;}
+  .section.open .chev{transform:rotate(180deg);}
+  .section-body{max-height:0;overflow:hidden;transition:max-height .28s ease;border-top:1px solid transparent;}
+  .section.open .section-body{border-top-color:var(--border);}
+  .section-body-inner{padding:12px 16px 16px;}
+
+  .subgroup-title{font-size:0.68rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--accent);font-weight:700;margin:14px 0 6px;}
+  .subgroup-title:first-child{margin-top:2px;}
+
+  .row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--border);}
+  .row:last-child{border-bottom:none;}
+  .row-label{flex:1;font-size:0.86rem;color:var(--text);font-weight:500;}
+  .ex-time{flex:none;font-family:var(--mono);font-size:0.68rem;color:var(--faint);padding:2px 2px;min-width:14px;text-align:right;}
+  .row.set-row{flex-wrap:wrap;}
+  .set-chips{display:flex;gap:5px;flex-wrap:wrap;flex:1 0 100%;margin-top:2px;padding-left:34px;}
+  .set-chip{background:var(--surface-2);border:1px solid var(--border);border-radius:7px;padding:2px 7px;font-family:var(--mono);font-size:0.78rem;color:var(--text);flex:none;}
+  .set-chips-empty{color:var(--faint);font-size:0.78rem;}
+  .set-input{flex:none;width:46px;text-align:center;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:8px 4px;font-family:var(--mono);font-size:0.9rem;}
+  .set-edit-btn{flex:none;background:none;border:none;color:var(--faint);font-size:0.9rem;padding:2px 4px;cursor:pointer;}
+  .set-edit-panel{flex:1 0 100%;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:8px 10px;margin:6px 0 4px 0;}
+  .set-edit-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
+  .set-edit-idx{color:var(--faint);font-family:var(--mono);font-size:0.75rem;width:16px;flex:none;}
+  .set-edit-row input{flex:none;width:52px;text-align:center;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 3px;font-family:var(--mono);font-size:0.85rem;}
+  .set-edit-time{flex:1;color:var(--faint);font-family:var(--mono);font-size:0.75rem;}
+  .set-edit-del{flex:none;background:none;border:none;color:#e5484d;font-size:0.9rem;cursor:pointer;padding:2px 4px;}
+  .bodylog-metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .bodylog-file{font-size:0.78rem;color:var(--muted);}
+  .bodylog-preview{display:block;max-width:140px;max-height:140px;border-radius:10px;margin-top:8px;border:1px solid var(--border);}
+  .bodylog-pending{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .bodylog-pending-thumb{position:relative;width:80px;height:80px;flex:none;}
+  .bodylog-pending-thumb img{width:100%;height:100%;object-fit:cover;border-radius:10px;border:1px solid var(--border);}
+  .bodylog-pending-thumb button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-size:0.7rem;line-height:1;cursor:pointer;padding:0;}
+  .bodylog-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);}
+  .bodylog-row:last-child{border-bottom:none;}
+  .bodylog-thumbs{display:flex;gap:5px;flex:none;}
+  .bodylog-thumb-wrap{position:relative;flex:none;}
+  .bodylog-thumb-wrap .bodylog-thumb-del{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);font-size:0.6rem;line-height:1;cursor:pointer;padding:0;}
+  .bodylog-thumb{width:44px;height:44px;border-radius:9px;object-fit:cover;flex:none;border:1px solid var(--border);cursor:pointer;}
+  .bodylog-thumb-empty{background:var(--surface-2);}
+  .bodylog-info{flex:1;min-width:0;}
+  .bodylog-row-wrap{border-bottom:1px dashed var(--border);}
+  .bodylog-row-wrap:last-child{border-bottom:none;}
+  .bodylog-row-wrap .bodylog-row{border-bottom:none;padding-bottom:4px;}
+  .bodylog-edit{background:none;border:none;color:var(--faint);font-size:0.9rem;padding:4px;cursor:pointer;flex:none;}
+  .bodylog-edit-panel{background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:10px 12px;margin:2px 0 10px 0;}
+  .measure-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:8px;}
+  .measure-field label{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:3px;}
+  .measure-field input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 8px;font-family:var(--mono);font-size:0.85rem;}
+  .mv-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--border);}
+  .mv-row:last-child{border-bottom:none;}
+  .mv-label{flex:0 0 92px;font-size:0.8rem;color:var(--text);}
+  .mv-bar{flex:1;height:8px;background:var(--surface-2);border-radius:5px;overflow:hidden;display:flex;position:relative;}
+  .mv-bar-p{background:var(--accent);height:100%;}
+  .mv-bar-s{background:var(--faint);height:100%;opacity:0.55;}
+  .mv-val{flex:none;font-family:var(--mono);font-size:0.72rem;color:var(--muted);text-align:right;min-width:92px;}
+  .bodylog-date{font-size:0.8rem;font-weight:600;color:var(--text);}
+  .bodylog-metrics{font-size:0.76rem;color:var(--muted);font-family:var(--mono);margin-top:2px;}
+  .bodylog-note{font-size:0.76rem;color:var(--faint);margin-top:2px;font-style:italic;}
+  .bodylog-del{flex:none;background:none;border:none;color:var(--faint);font-size:0.95rem;padding:4px 6px;cursor:pointer;}
+  .pinned-item{display:flex;align-items:stretch;gap:2px;}
+  .pinned-move{flex:none;display:flex;flex-direction:column;justify-content:center;}
+  .pinned-move .cfg-move{padding:8px 10px;line-height:1;font-size:1.35rem;color:var(--text);}
+  .pinned-row-inner{flex:1;min-width:0;}
+  .help-p{font-size:0.82rem;line-height:1.5;color:var(--text);margin:0 0 10px 0;}
+  .help-p:last-child{margin-bottom:0;}
+  .help-p b{color:var(--accent);}
+  .row-label .tag{font-size:0.6rem;color:var(--faint);margin-left:6px;text-transform:uppercase;}
+  .row input.reps{width:118px;text-align:center;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:9px 6px;font-family:var(--mono);font-size:0.92rem;}
+  .row input.reps:focus{border-color:var(--accent);outline:none;}
+  .row input.reps:not(:placeholder-shown){border-color:var(--good);color:var(--good);}
+
+  .derived-row{display:flex;justify-content:space-between;padding:7px 10px;background:var(--surface-2);border-radius:9px;margin-top:6px;font-size:0.78rem;}
+  .derived-row .l{color:var(--muted);}
+  .derived-row .v{font-family:var(--mono);font-weight:700;color:var(--gold);}
+
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.span2{grid-column:1/3;}
+  .field label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);font-weight:700;}
+  .field input,.field select{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:10px 10px;font-family:var(--sans);font-size:0.92rem;width:100%;}
+  .field input:focus,.field select:focus{border-color:var(--accent);outline:none;}
+  input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type=number]{ -moz-appearance:textfield; }
+
+  .part-toggle{display:flex;gap:6px;}
+  .part-toggle button{flex:1;padding:9px 4px;border-radius:9px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);font-size:0.76rem;font-weight:700;cursor:pointer;font-family:var(--sans);}
+  .part-toggle button.active{background:var(--accent);color:#140900;border-color:var(--accent);}
+
+  .prior-toggle{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:9px 10px;}
+  .prior-toggle input[type=text]{flex:1;background:transparent;border:none;color:var(--text);font-size:0.85rem;padding:0;font-family:var(--sans);}
+  .prior-toggle input[type=text]:disabled{color:var(--faint);}
+  .prior-toggle input[type=text]:focus{outline:none;}
+
+  .perf-table{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .perf-head-row, .perf-row{display:grid;grid-template-columns:1.1fr 0.8fr 1fr 1fr;gap:4px;padding:9px 10px;align-items:center;}
+  .perf-head-row{font-size:0.62rem;text-transform:uppercase;color:var(--muted);font-weight:800;background:var(--surface-2);}
+  .perf-row{font-size:0.8rem;border-top:1px dashed var(--border);}
+  .perf-row .p-pace{font-family:var(--mono);}
+  .perf-row .p-pace.flat{color:var(--gold);}
+  .perf-list-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--border);}
+  .perf-list-item:last-child{border-bottom:none;}
+  .perf-list-item .p-date{font-size:0.72rem;color:var(--muted);}
+  .perf-list-item .p-vals{display:flex;gap:12px;font-family:var(--mono);font-size:0.82rem;}
+  .perf-list-item .p-vals .flat{color:var(--gold);}
+
+  .grand-total{background:linear-gradient(135deg, var(--accent-dim), transparent);border:1px solid #ff4a0055;border-radius:14px;padding:16px;text-align:center;margin-bottom:10px;}
+  .grand-total .g-lbl{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;}
+  .grand-total .g-val{font-family:var(--mono);font-weight:800;font-size:2rem;color:var(--accent);line-height:1.2;}
+  .grand-total .g-sub{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+
+  .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .summary-card{background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:11px 8px;text-align:left;}
+  .summary-card .g-title{font-size:0.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .summary-card .s-line{display:flex;justify-content:space-between;font-size:0.75rem;padding:2px 0;flex-wrap:wrap;}
+  .summary-card .s-line b{font-family:var(--mono);color:var(--text);overflow-wrap:break-word;white-space:normal;min-width:0;}
+  .summary-card .s-line.total b{color:var(--accent);}
+
+  .bmi-scale{margin-top:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:10px 12px;}
+  .bmi-band{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px dashed var(--border);font-size:0.78rem;}
+  .bmi-band:last-child{border-bottom:none;}
+  .bmi-band .bmi-dot{width:10px;height:10px;border-radius:50%;flex:none;}
+  .bmi-band .bmi-label{flex:1;color:var(--text);}
+  .bmi-band .bmi-range{font-family:var(--mono);color:var(--muted);}
+  .bmi-band.current{background:var(--accent-dim);border-radius:8px;margin:0 -6px;padding:6px;font-weight:700;}
+  .bmi-band.current .bmi-label, .bmi-band.current .bmi-range{color:var(--accent);}
+
+  .pr-banner{margin-top:10px;background:#ffc94a15;border:1px solid #ffc94a55;color:var(--gold);border-radius:11px;padding:10px 12px;font-size:0.82rem;font-weight:600;display:flex;align-items:flex-start;gap:8px;line-height:1.4;}
+  .record-toggle{margin-top:10px;display:flex;align-items:center;justify-content:space-between;background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;}
+  .record-toggle span{font-size:0.85rem;font-weight:600;}
+  .switch{position:relative;width:46px;height:26px;flex:none;}
+  .switch input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;}
+  .switch .track{position:absolute;inset:0;background:var(--border);border-radius:999px;transition:.2s;}
+  .switch .thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:.2s;}
+  .switch input:checked + .track{background:var(--good-dim);border:1px solid var(--good);}
+  .switch input:checked ~ .thumb{transform:translateX(20px);background:var(--good);}
+
+  .actionbar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:linear-gradient(0deg, var(--bg) 75%, transparent);padding:8px 10px 10px;}
+  .actionbar-inner{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .btn-drive{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+  .btn{border:none;border-radius:10px;padding:7px 4px;font-weight:700;font-size:0.6rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;font-family:var(--sans);letter-spacing:0.1px;}
+  .btn .ic{font-size:0.9rem;}
+  .btn-save{background:var(--accent);color:#140900;}
+  .btn-pdf{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+  .btn-ai{background:var(--surface-2);color:var(--text);border:1px solid var(--border);}
+  .btn:active{transform:scale(0.96);}
+
+  .toolbar-row{display:flex;gap:8px;margin-top:12px;}
+  .btn-mini{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px;font-size:0.75rem;font-weight:700;font-family:var(--sans);cursor:pointer;}
+  .btn-mini.danger{color:var(--danger);border-color:#ff5c5c33;}
+
+  .toast{position:fixed;bottom:104px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--good);color:#0a1a06;font-weight:700;font-size:0.85rem;padding:11px 20px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s ease;z-index:50;white-space:nowrap;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .hist-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  .hist-left .num{font-family:var(--mono);font-weight:800;color:var(--accent);font-size:1.1rem;}
+  .hist-left .date{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+  .hist-mid{display:flex;gap:14px;}
+  .hist-mid .m{text-align:center;}
+  .hist-mid .m .v{font-family:var(--mono);font-weight:700;font-size:0.95rem;}
+  .hist-mid .m .l{font-size:0.6rem;color:var(--muted);text-transform:uppercase;}
+  .hist-del{background:none;border:none;color:var(--faint);font-size:1.1rem;padding:6px 4px;cursor:pointer;}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+  .empty-state .ic{font-size:2.2rem;margin-bottom:10px;}
+  .section-note{font-size:0.72rem;color:var(--faint);margin-top:10px;line-height:1.5;}
+
+  .cfg-group{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 14px 16px;margin-top:12px;}
+  .cfg-group-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .cfg-icon-input{width:44px;text-align:center;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:9px 4px;font-size:1rem;}
+  .cfg-title-input{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:9px 10px;font-size:0.9rem;font-weight:700;min-width:0;}
+  .cfg-move{background:none;border:none;color:var(--muted);font-size:0.95rem;padding:4px 3px;cursor:pointer;}
+  .cfg-del-group{background:none;border:none;color:var(--danger);font-size:1rem;padding:4px 6px;cursor:pointer;}
+  .cfg-ex-row{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px dashed var(--border);flex-wrap:wrap;}
+  .cfg-ex-row:last-of-type{border-bottom:none;}
+  .cfg-ex-label{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 9px;font-size:0.84rem;min-width:90px;}
+  .cfg-ex-weights, .cfg-ex-coef{width:82px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 6px;font-size:0.74rem;font-family:var(--mono);text-align:center;}
+  .cfg-badge{font-size:0.58rem;text-transform:uppercase;font-weight:800;letter-spacing:0.3px;padding:3px 6px;border-radius:6px;flex:none;}
+  .cfg-badge.ladder{background:var(--accent-dim);color:var(--accent);}
+  .cfg-badge.single{background:#3d4552;color:var(--muted);}
+  .cfg-badge.bodyweight{background:#7ed95722;color:var(--good);}
+  .cfg-ex-del{background:none;border:none;color:var(--faint);font-size:0.95rem;padding:2px 4px;cursor:pointer;flex:none;}
+  .cfg-ex-dup{background:none;border:none;color:var(--faint);font-size:1.05rem;padding:2px 4px;cursor:pointer;flex:none;}
+  .cfg-add-ex{margin-top:10px;background:var(--surface-2);border:1px dashed var(--border);border-radius:10px;padding:10px;}
+  .cfg-add-row{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+  .cfg-add-row select, .cfg-add-row input{background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px;font-size:0.8rem;font-family:var(--sans);}
+  .cfg-add-row input.cfg-new-label{flex:1;min-width:100px;}
+  .cfg-add-row input.cfg-new-weights, .cfg-add-row input.cfg-new-coef{width:110px;font-family:var(--mono);}
+  .cfg-add-btn{width:100%;background:var(--accent);color:#140900;border:none;border-radius:8px;padding:9px;font-weight:700;font-size:0.8rem;cursor:pointer;}
+  .cfg-new-group{background:var(--surface);border:1px dashed var(--border);border-radius:14px;padding:14px;margin-top:12px;}
+  .cfg-new-group-row{display:flex;gap:8px;margin-bottom:8px;}
+  .cfg-hint{font-size:0.72rem;color:var(--faint);line-height:1.5;margin:10px 2px 4px;}
+  .cfg-checks{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+  .cfg-check-pill{display:flex;align-items:center;gap:5px;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:0.72rem;color:var(--muted);}
+  .cfg-check-pill input{margin:0;}
+  .cfg-check-pill.active{border-color:var(--accent);color:var(--accent);}
+  canvas{max-width:100%;}
+
+  .week-grid{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;}
+  .week-row{display:flex;align-items:center;gap:6px;padding:3px 0;}
+  .week-row-label{width:78px;flex:none;font-size:0.68rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .week-row-cells{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;flex:1;}
+  .week-cell{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:0.6rem;color:#fff;min-height:20px;}
+  .week-day-label{text-align:center;font-size:0.62rem;color:var(--muted);font-weight:700;}
+
+  #printArea{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{display:block;position:absolute;top:0;left:0;width:100%;padding:20px;color:#000;background:#fff;font-family:Arial,sans-serif;}
+    .p-h1{font-size:20px;font-weight:800;margin-bottom:4px;}
+    .p-meta{font-size:12px;color:#333;margin-bottom:14px;}
+    .p-sec{margin-top:14px;}
+    .p-sec-title{font-size:13px;font-weight:800;border-bottom:2px solid #ff4a00;padding-bottom:4px;margin-bottom:6px;text-transform:uppercase;}
+    .p-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dotted #ccc;}
+    .p-row b{font-weight:700;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="watchhead">
+    <div class="watchhead-row">
+      <div class="brand"><span class="dot">●</span><span class="brand-title">Deník</span><span id="autosaveIndicator" style="opacity:0;transition:opacity .3s;font-size:0.62rem;color:var(--good);margin-left:6px;font-weight:700;">✓ auto</span></div>
+      <div class="nav-toggle">
+        <button id="tabFormBtn" class="active">Zápis</button>
+        <button id="tabHistBtn">Historie</button>
+        <button id="tabCfgBtn">Cviky</button>
+        <button id="tabSportBtn">Sporty</button>
+        <button id="tabMuscleBtn">Svaly</button>
+        <button id="tabPerfBtn">Běh výkon</button>
+        <button id="tabChartBtn">Graf</button>
+        <button id="tabProfileBtn">Profil</button>
+        <button id="tabHelpBtn">Nápověda</button>
+      </div>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+    </div>
+    <div class="dial" id="dial">
+      <div class="dial-metric accent"><div class="val" id="dialNum">–</div><div class="lbl">Trénink</div></div>
+      <div class="dial-metric"><div class="val" id="dialDur">–<small>min</small></div><div class="lbl">Délka</div></div>
+      <div class="dial-metric"><div class="val" id="dialTss">–</div><div class="lbl">TSS</div></div>
+    </div>
+    <div class="stopwatch-card">
+      <div class="sw-time" id="swTime">0:00</div>
+      <div class="sw-controls">
+        <button type="button" id="swToggleBtn" onclick="toggleStopwatch()">▶️ Start</button>
+        <button type="button" onclick="resetStopwatch()">🔁 Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="backupBanner" class="backup-banner" style="display:none">
+    <span id="backupBannerText"></span>
+    <div style="display:flex;gap:6px;flex:none">
+      <button onclick="backupFromBanner()">⬇️ Zálohovat</button>
+      <button class="dismiss" onclick="dismissBackupBanner()">✕</button>
+    </div>
+  </div>
+
+  <!-- ============ FORM VIEW ============ -->
+  <div id="formView">
+
+    <div class="section open" id="pinnedSection">
+      <div class="section-head" onclick="togglePinnedCollapse(this)">
+        <div class="section-head-left"><span class="section-dot filled"></span>
+          <div><div class="section-title">⭐ Rychlý přístup</div><div class="section-sub">Připnuté cviky · pořadí měníš šipkami ▲▼</div></div></div>
+        <span class="chev">▾</span>
+      </div>
+      <div class="section-body"><div class="section-body-inner" id="pinnedBody"></div></div>
+    </div>
+
+    <div class="section open" data-key="meta">
+      <div class="section-head" onclick="toggleSection(this)">
+        <div class="section-head-left"><span class="section-dot" id="dot-meta"></span>
+          <div><div class="section-title">Hlavička tréninku</div><div class="section-sub">Datum, váha, spánek, pocit</div></div></div>
+        <span class="chev">▾</span>
+      </div>
+      <div class="section-body"><div class="section-body-inner meta-grid" id="metaGrid"></div></div>
+    </div>
+
+    <div class="section" data-key="suunto">
+      <div class="section-head" onclick="toggleSection(this)">
+        <div class="section-head-left"><span class="section-dot" id="dot-suunto"></span>
+          <div><div class="section-title">⌚ Suunto metriky</div><div class="section-sub">TF, TSS za celý trénink</div></div></div>
+        <span class="chev">▾</span>
+      </div>
+      <div class="section-body"><div class="section-body-inner">
+        <div class="meta-grid" id="suuntoGrid"></div>
+        <div class="field span2" style="margin-top:10px">
+          <button type="button" class="btn-mini" onclick="document.getElementById('suuntoScanInput').click()">🖼️ Vybrat screenshot z galerie</button>
+          <input type="file" id="suuntoScanInput" accept="image/*" style="display:none" onchange="scanSuuntoImage(this)">
+          <div class="section-note" style="margin-top:8px">Vyber uložený screenshot z hodinek (Suunto app). Rozpozná se TF a TSS, případně km/čas do prvního běžeckého sportu, nebo celková délka tréninku. OCR není 100% přesné — hodnoty po naskenování vždy zkontroluj.</div>
+        </div>
+      </div></div>
+    </div>
+
+    <div id="exerciseSections"></div>
+    <div id="sportSections"></div>
+
+    <div class="section open" data-key="summary">
+      <div class="section-head" onclick="toggleSection(this)">
+        <div class="section-head-left"><span class="section-dot filled"></span>
+          <div><div class="section-title">📊 Souhrn</div><div class="section-sub">Automatický přepočet</div></div></div>
+        <span class="chev">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="section-body-inner">
+          <div class="grand-total">
+            <div class="g-lbl">Celkem zvednuto</div>
+            <div class="g-val" id="grandTotal">0 kg</div>
+            <div class="g-sub" id="grandTotalSub"></div>
+          </div>
+          <div class="summary-grid" id="summaryGrid"></div>
+          <div id="prBanner" style="display:none" class="pr-banner">🏆 <span id="prText"></span></div>
+          <div class="record-toggle">
+            <span>Označit jako rekord</span>
+            <label class="switch"><input type="checkbox" id="recordManual"><span class="track"></span><span class="thumb"></span></label>
+          </div>
+          <div class="toolbar-row">
+            <button class="btn-mini" onclick="newRecord()">＋ Nový záznam</button>
+            <button class="btn-mini danger" onclick="deleteCurrent()">🗑 Smazat tento</button>
+          </div>
+          <div class="section-note">Síla = váhy činky (kg×opak) + cviky s vlastní vahou (tvoje kg × koeficient × opak). Data se ukládají jen v tomto telefonu.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HISTORY VIEW ============ -->
+  <div id="histView" style="display:none">
+    <div id="histList"></div>
+    <div id="histEmpty" class="empty-state" style="display:none"><div class="ic">📭</div><div>Zatím žádné uložené tréninky.</div></div>
+    <div class="section" style="margin-top:16px">
+      <div class="section-body-inner" style="padding:16px">
+        <div class="subgroup-title" style="margin-top:0">💾 Záloha dat</div>
+        <div class="section-note" style="margin-top:0">Stáhni si zálohu všech tréninků, cviků, sportů a nastavení do jednoho souboru. Po aktualizaci appky (nová verze HTML) ji stejným tlačítkem zpátky nahraješ — data se automaticky sloučí s tím, co už v telefonu máš.</div>
+        <div class="toolbar-row">
+          <button class="btn-mini" onclick="exportBackup()">⬇️ Export zálohy</button>
+          <button class="btn-mini" onclick="document.getElementById('importFile').click()">⬆️ Import zálohy</button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importBackupFile(this)">
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CVIKY / CONFIG VIEW ============ -->
+  <div id="cfgView" style="display:none">
+    <div class="cfg-hint">Přidávej vlastní skupiny a cviky, uprav váhy/koeficient, nebo cvik/skupinu zruš (🗑). Váhový žebříček = řádek pro každou váhu. Cvik s vlastní vahou počítá tvoje kg × koeficient (např. 0.5 pro TRX pod úhlem, 1 pro shyby).</div>
+    <div id="cfgGroups"></div>
+    <div class="cfg-new-group">
+      <div class="subgroup-title" style="margin-top:0">＋ Nová skupina cviků</div>
+      <div class="cfg-new-group-row">
+        <input class="cfg-icon-input" id="newGroupIcon" value="🏋️" maxlength="4">
+        <input class="cfg-title-input" id="newGroupTitle" placeholder="Např. Ramena, Kardio…">
+      </div>
+      <button class="cfg-add-btn" onclick="addGroup()">Přidat skupinu</button>
+    </div>
+  </div>
+
+  <!-- ============ SPORTY VIEW ============ -->
+  <div id="sportView" style="display:none">
+    <div class="cfg-hint">Tady si nastav sportovní aktivity (běh, capoeira, plavání…) a jaká data se u nich zaznamenávají. U běhu se navíc počítá tempo přepočtené na rovinu a odhad práce do kopce z převýšení a tvé váhy.</div>
+    <div id="sportGroups"></div>
+    <div class="cfg-new-group">
+      <div class="subgroup-title" style="margin-top:0">＋ Nový sport</div>
+      <div class="cfg-new-group-row">
+        <input class="cfg-icon-input" id="newSportIcon" value="🏃" maxlength="4">
+        <input class="cfg-title-input" id="newSportTitle" placeholder="Např. Plavání, Kolo…">
+      </div>
+      <div class="cfg-checks" id="newSportChecks"></div>
+      <button class="cfg-add-btn" onclick="addSport()">Přidat sport</button>
+    </div>
+  </div>
+
+  <!-- ============ SVALY VIEW ============ -->
+  <div id="muscleView" style="display:none">
+    <div class="nav-toggle" style="margin-bottom:12px;width:100%">
+      <button id="muscleTodayBtn" class="active" style="flex:1">Dnes</button>
+      <button id="muscleWeekBtn" style="flex:1">Týden</button>
+      <button id="muscleNeglectBtn" style="flex:1">Opomíjené</button>
+    </div>
+    <div id="muscleBodies" style="display:flex;gap:10px;justify-content:center;"></div>
+    <div id="muscleLegend" class="cfg-hint" style="text-align:center"></div>
+    <div id="muscleList" style="margin-top:6px"></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">Souhrn objemu podle svalu (vč. sekundárního zapojení)</div>
+      <div class="section-note" style="margin-top:0">Za celou historii. "Primárně" = objem cviků, kde je sval hlavní. "+ sekundárně" přičítá objem cviků, kde je jen spolupracující (počítáno na polovinu, protože zapojení není tak intenzivní jako u primárního svalu) — např. dřepy/mrtvý tah takhle přidají něco navíc hýždím a hamstringům, i když appka je tam jinak neukazuje.</div>
+      <div id="muscleVolumeSummary"></div>
+    </div></div>
+  </div>
+
+  <!-- ============ BĚŽECKÁ VÝKONNOST VIEW ============ -->
+  <div id="perfView" style="display:none">
+    <h3 style="margin:6px 0 10px">🏃 Běžecká výkonnost</h3>
+    <div class="cfg-hint">Přehled výkonnosti u sportů s naměřenou vzdáleností (běh apod.). "Reálné tempo" počítá jen z km a času, "Tempo na rovinu" navíc zohledňuje převýšení — takže srovnává výkony spravedlivěji bez ohledu na to, jak kopcovitá trasa byla. Formát tempa je min:sek na kilometr (např. 5:36 = 5 minut 36 sekund na km).</div>
+    <div class="nav-toggle" style="margin-bottom:0;width:100%">
+      <button id="perfWeekBtn" class="active" style="flex:1">Týdny</button>
+      <button id="perfMonthBtn" style="flex:1">Měsíce</button>
+    </div>
+    <div id="perfTable"></div>
+    <div class="subgroup-title">Jednotlivé běhy</div>
+    <div id="perfList" class="section" style="padding:4px 16px"></div>
+  </div>
+
+  <!-- ============ GRAF (PROGRES) VIEW ============ -->
+  <div id="chartView" style="display:none">
+    <h3 style="margin:6px 0 10px">📈 Vývoj výkonnosti</h3>
+    <div class="nav-toggle" style="margin-bottom:12px;width:100%">
+      <button id="chartStrengthBtn" class="active" style="flex:1">Síla</button>
+      <button id="chartRunBtn" style="flex:1">Běh</button>
+      <button id="chartBodyBtn" style="flex:1">Tělo</button>
+    </div>
+    <div id="chartStrengthWrap">
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">Celkový objem za trénink (kg)</div>
+        <canvas id="chartVolume" height="190"></canvas>
+      </div></div>
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">Bench &amp; Mrtvý tah — max váha</div>
+        <canvas id="chartLifts" height="190"></canvas>
+      </div></div>
+    </div>
+    <div id="chartRunWrap" style="display:none">
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">Tempo v čase</div>
+        <div class="section-note" style="margin-top:0">Nižší hodnota = rychlejší běh.</div>
+        <canvas id="chartPace" height="220"></canvas>
+      </div></div>
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">Vývoj VO2max (odhad z hodinek)</div>
+        <div class="section-note" style="margin-top:0">Pomalu rostoucí ukazatel aerobní kondice — výš je lépe.</div>
+        <canvas id="chartVo2max" height="190"></canvas>
+      </div></div>
+    </div>
+    <div id="chartBodyWrap" style="display:none">
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">Vývoj tělesné váhy</div>
+        <canvas id="chartWeight" height="190"></canvas>
+      </div></div>
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">Výkon (objem kg) vs. únava a RPE</div>
+        <div class="section-note" style="margin-top:0">Objem = celkem zvednuto za trénink. Únava a RPE jsou tvoje vlastní hodnocení 1–10 zapsané v hlavičce (RPE = jak blízko selhání jsi trénoval).</div>
+        <canvas id="chartFatigue" height="220"></canvas>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ============ PROFIL VIEW ============ -->
+  <div id="profileView" style="display:none">
+    <h3 style="margin:6px 0 10px">🧍 Osobní karta</h3>
+    <div class="cfg-hint">Váha se nepřidává tady — bere se automaticky z posledního zapsaného tréninku.</div>
+    <div class="section"><div class="section-body-inner meta-grid" id="profileGrid"></div></div>
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">Vyhodnocení</div>
+      <div id="profileStats"></div>
+    </div></div>
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">Tréninkové zóny tepové frekvence</div>
+      <div class="section-note" style="margin-top:0" id="profileZoneNote"></div>
+      <div id="profileZones"></div>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">📏 Tělesné míry a fotky</div>
+      <div class="section-note" style="margin-top:0">Volitelné — obvody a fotka pro sledování trendu postavy. Nezávislé na jednotlivých trénincích, zadávej třeba jednou za 1–2 týdny.</div>
+      <div class="bodylog-form">
+        <div class="field"><label>Datum</label><input type="date" id="bodyLogDate"></div>
+        <div class="bodylog-metric-grid">
+          <div class="field"><label>Pas (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_waist" placeholder="cm"></div>
+          <div class="field"><label>Hrudník (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_chest" placeholder="cm"></div>
+          <div class="field"><label>Paže (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_arm" placeholder="cm"></div>
+          <div class="field"><label>Stehno (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_thigh" placeholder="cm"></div>
+          <div class="field"><label>Boky (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_hip" placeholder="cm"></div>
+          <div class="field"><label>TK systola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bodyMetric_bpSys" placeholder="např. 128"></div>
+          <div class="field"><label>TK diastola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bodyMetric_bpDia" placeholder="např. 82"></div>
+        </div>
+        <div class="field"><label>Poznámka</label><input type="text" id="bodyLogNote" placeholder="volitelné"></div>
+        <div class="field">
+          <label>Fotka</label>
+          <input type="file" accept="image/*" multiple id="bodyLogPhotoInput" class="bodylog-file" onchange="handleBodyPhotoPick(this,'bodyLogPhotoPreview')">
+          <div class="cfg-hint" style="margin:4px 0 0">Můžeš vybrat víc fotek najednou (zezadu/zboku/zepředu), nebo přidávat postupně — pole při dalším výběru nemaže ty předchozí.</div>
+          <div id="bodyLogPhotoPreview" class="bodylog-pending"></div>
+        </div>
+        <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addBodyLogEntry()"><span class="ic">💾</span>Přidat záznam</button>
+      </div>
+      <canvas id="chartBodyMetrics" height="190" style="margin-top:16px"></canvas>
+      <canvas id="chartBloodPressure" height="190" style="margin-top:16px;display:none"></canvas>
+      <div id="bodyLogList" style="margin-top:14px"></div>
+    </div></div>
+  </div>
+
+  <div id="helpView" style="display:none">
+    <h3 style="margin:6px 0 10px">📖 Nápověda</h3>
+    <div class="cfg-hint">Stručný přehled všech funkcí appky — co dělají a jak se používají.</div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">📝 Zápis (hlavní obrazovka)</div>
+      <p class="help-p">Nahoře je "hodinkový" přehled (číslo tréninku, délka, TSS) a stopky — Start/Reset ti automaticky vyplní čas začátku/konce a délku tréninku.</p>
+      <p class="help-p"><b>⭐ Rychlý přístup</b> — cviky, které si připneš hvězdičkou ☆ u libovolného cviku níže, se objeví nahoře, ať se u okruhů (např. bench→břicho→nohy dokola) nemusíš pořád proplétat mezi sekcemi. Pořadí připnutých cviků změníš šipkami ▲▼ vlevo od cviku. Celou sekci jde sbalit/rozbalit klepnutím na nadpis — appka si pamatuje, jak jsi ji naposledy nechal, i po zavření appky.</p>
+      <p class="help-p"><b>Hlavička</b> — datum, část dne, spánek, pocit, únava, RPE tréninku (viz níže), tělesná váha (předvyplní se z posledního tréninku), volitelně "Navazuje na aktivitu" (např. píšeš trénink co byl po běhu ten samý den).</p>
+      <p class="help-p"><b>RPE tréninku (1–10)</b> — jedno číslo za celý trénink, jak blízko selhání jsi byl v nejtěžších sériích (10 = na doraz, nedáš už ani jedno opakování). Appka ti hned ukáže i přepočet na RIR (opakování v rezervě). Je to jiná metrika než Únava — únava je "jak jsem celkově vyřízený", RPE je čistě "jak blízko limitu jsem šel".</p>
+      <p class="help-p"><b>Cviky ve skupinách</b> — klepni na skupinu (Bench, Core, Nohy...) a rozbalí se. Ke každému cviku je teď malé vstupní pole "+" na jednu sérii — napíšeš číslo, po ~2,5s ticha (nebo klepnutím jinam / Enterem) se série uloží s přesným časem a pole se vyprázdní na další. Uložené série vidíš jako malé "kostičky" vedle názvu, čas poslední série je vpravo. Tužtičkou ✏️ otevřeš editaci — tam vidíš čas každé série zvlášť, můžeš opravit hodnotu nebo sérii smazat 🗑. Tímto appka sbírá skutečná časová razítka ke každé sérii, ne jen odhad — časem z toho půjde počítat trend výkonu/RPE v průběhu tréninku.</p>
+      <p class="help-p"><b>Suunto sken</b> — v sekci "Suunto metriky" nebo přímo u konkrétního sportu je tlačítko na vyfocení/vybrání screenshotu z hodinek. Appka automaticky vytáhne TF, TSS, tempo, převýšení, kadenci, VO2max atd.</p>
+      <p class="help-p"><b>Ukládání</b> — appka ukládá automaticky (2,5s po poslední změně, malá tichá "✓ auto" hláška), nemusíš nic mačkat. Tlačítko "Uložit" dole je pro jistotu / okamžité uložení.</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">🕓 Historie</div>
+      <p class="help-p">Seznam všech tréninků, klepnutím na kartu se záznam načte zpátky do Zápisu k úpravě. Křížkem smažeš, 🏆 značí osobní rekord, 🔗 značí trénink navazující na jinou aktivitu.</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">🏋️ Cviky</div>
+      <p class="help-p">Editor skupin a cviků. U každého cviku můžeš: přejmenovat, upravit váhy (žebříček), koeficient tělesné váhy, přiřadit sval, přesunout nahoru/dolů šipkami ▲▼, <b>duplikovat</b> ikonou ⎘ (vytvoří kopii "(kopie)" se stejným nastavením, kterou pak jen přejmenuješ/upravíš — hodí se pro podobné varianty cviku), nebo smazat 🗑. Dole v každé skupině je formulář na přidání nového cviku.</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">🏃 Sporty</div>
+      <p class="help-p">Podobný editor jako Cviky, ale pro sportovní aktivity (Běh, Capoeira, Strečink...). Vybíráš, která pole se mají sledovat (vzdálenost, tempo, TF, VO2max...). U Běhu appka umí i "Váha před" a "Váha po" — "Váha před" se sama předvyplní z hlavičkové váhy nahoře (nemusíš ji zadávat dvakrát, ale klidně ji přepiš, pokud se před tím ještě zvážíš zvlášť), doplňuješ tak jen "Váhu po". Appka z rozdílu spočítá odhad úbytku tekutin (v gramech). Nový sport přidáš tlačítkem dole.</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">💪 Svaly</div>
+      <p class="help-p">Vizualizace, které svaly jsi zatěžoval — Dnes / Týden / Opomíjené. Červená = primárně trénováno, žlutá = sekundárně zapojeno, šedá = netrénováno. Týdenní heatmapa ukazuje rozložení přes dny. Dole je navíc trvalý "Souhrn objemu podle svalu" za celou historii — ukazuje primární objem i menší přídavek ze sekundárního zapojení (na polovinu), takže třeba hýždě nebo hamstringy, které nejsou primárním svalem u žádného cviku, tam konečně dostanou nějaké číslo za dřepy/mrtvý tah místo nuly.</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">🏃‍♂️ Běh výkon</div>
+      <p class="help-p">Souhrn běhů po týdnech/měsících — reálné tempo vs. tempo přepočtené na rovinu (zohledňuje převýšení), a seznam jednotlivých běhů včetně VO2max, pokud ho appka rozpoznala ze skenu.</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">📊 Graf</div>
+      <p class="help-p"><b>Síla</b> — vývoj objemu (kg) a maximálních vah u klíčových cviků. <b>Běh</b> — tempo v čase a vývoj VO2max. <b>Tělo</b> — váha v čase a "Výkon vs. únava a RPE" (objem tréninku jako sloupce, únava a RPE jako čáry — ukáže ti, jestli podáváš stejný výkon za rostoucí, nebo naopak klesající "cenu").</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">🧍 Profil</div>
+      <p class="help-p">Výška, datum narození, pohlaví, klidová TF — appka z toho spočítá věk, BMI (s pásmy podváha/normální/nadváha/obezita), BMR, odhad denní kalorické potřeby a tréninkové zóny tepové frekvence. Váha se bere automaticky z posledního tréninku.</p>
+      <p class="help-p"><b>📏 Tělesné míry a fotky</b> — nezávislý periodický log (nemusíš vyplňovat každý trénink, stačí třeba jednou za 1–2 týdny). Zapíšeš obvody (pas, hrudník, paže, stehno, boky), krevní tlak (systola/diastola — měř ideálně vždy ve stejnou denní dobu a v klidu, ať je trend srovnatelný) a/nebo přidáš fotky postavy — jeden záznam může mít víc fotek najednou (např. zezadu/zboku/zepředu), appka je sama zmenší a zkomprimuje, ať zbytečně nezabírají místo. Dole vidíš graf vývoje obvodů a chronologický seznam všech záznamů s náhledy fotek (klepnutím na náhled se otevře na celou obrazovku, křížkem u fotky smažeš jen tu jednu fotku). Tužtičkou ✏️ u záznamu jde kdykoliv zpětně opravit datum, míry i poznámku, fotky přitom zůstanou — nemusíš kvůli překlepu mazat celý záznam. Pozor: appka data ukládá jen v telefonu (localStorage), který má omezenou kapacitu — pokud by nešlo uložit další fotku, appka tě na to upozorní; pomůže smazat pár starších fotek nebo použít Zálohu (viz níže), která fotky/míry taky obsahuje.</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">💾 Záloha dat</div>
+      <p class="help-p">Dole v Zápisu je Export (uloží JSON zálohu, jde poslat do Google Drive / kamkoliv) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené i tělesné míry a fotky z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na nový Netlify odkaz — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
+    </div></div>
+  </div>
+
+</div>
+
+<div class="actionbar">
+  <div class="actionbar-inner">
+    <button class="btn btn-save" onclick="saveRecord()"><span class="ic">💾</span>Uložit</button>
+    <button class="btn btn-pdf" onclick="exportPdf()"><span class="ic">📄</span>Tisk/PDF</button>
+    <button class="btn btn-ai" onclick="copyForAi()"><span class="ic">🤖</span>Pro AI</button>
+    <button class="btn btn-drive" onclick="exportToDrive()"><span class="ic">📤</span>Disk</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+/* ============================================================
+   CONFIG cviků (skupiny + cviky)
+   ============================================================ */
+const CONFIG_KEY  = "trenink_config_v2";
+const SPORTS_KEY  = "trenink_sports_v1";
+const RECORDS_KEY = "trenink_records_v3";
+const PINNED_KEY = "trenink_pinned_v1";
+const PROFILE_KEY = "trenink_profile_v1";
+const BODYLOG_KEY = "trenink_bodylog_v1";
+const OLD_RECORDS_KEY_V2 = "trenink_records_v2";
+const OLD_RECORDS_KEY_V1 = "trenink_records_v1";
+
+function defaultConfig(){
+  return {
+    version: 7,
+    groups: [
+      { id:"g_strength", icon:"🏋️", title:"Hlavní síla", exercises:[
+        { id:"e_bench", label:"Bench", type:"ladder", weights:[40,45,50,55,60,65,70,75,80,85,90,95,100], muscle:"chest", secondary:["triceps","shoulders"] },
+        { id:"e_bench_db", label:"Bench s jednoručkami", type:"ladder", weights:[20,24,28.4,32,36,40,44,48], muscle:"chest", secondary:["triceps","shoulders"] },
+        { id:"e_deadlift", label:"Mrtvý tah", type:"ladder", weights:[60,65,70,75,80,85,90,95,100,105,110], muscle:"back", secondary:["hamstrings","glutes","forearms"] }
+      ]},
+      { id:"g_upper", icon:"💪", title:"OH press & doplňky", exercises:[
+        { id:"e_ohp", label:"OH press", type:"ladder", weights:[30,35,40,45,50], muscle:"shoulders" },
+        { id:"e_ohp_uzko", label:"Kliky na úzko", type:"bodyweight", coef:0.65, muscle:"triceps" },
+        { id:"e_ohp_siroko", label:"Kliky na široko", type:"bodyweight", coef:0.65, muscle:"chest" },
+        { id:"e_hrazda_nad", label:"Hrazda Nadhmat", type:"bodyweight", coef:1, muscle:"back" },
+        { id:"e_hrazda_pod", label:"Hrazda Podhmat", type:"bodyweight", coef:1, muscle:"biceps" },
+        { id:"e_pritahy_kb", label:"Přítahy 10+10 kg KB v předklonu", type:"ladder", weights:[20], muscle:"back" },
+        { id:"e_trx", label:"TRX přítahy v leže pod 45°", type:"bodyweight", coef:0.5, muscle:"back" },
+        { id:"e_rozpazky", label:"Rozpažky 5+5 kg", type:"ladder", weights:[10], muscle:"shoulders" },
+        { id:"e_rozpacky", label:"Rozpačky 14+14 kg", type:"ladder", weights:[28], muscle:"shoulders" },
+        { id:"e_biceps_z", label:"Biceps Z – osa 37 kg", type:"ladder", weights:[37], muscle:"biceps" },
+        { id:"e_biceps_5", label:"Biceps 5+5 kg 1.ruč", type:"ladder", weights:[10], muscle:"biceps" },
+        { id:"e_biceps_14", label:"Biceps 14+14 kg 1.ruč", type:"ladder", weights:[28], muscle:"biceps" },
+        { id:"e_triceps_z", label:"Triceps Z osa 37kg", type:"ladder", weights:[37], muscle:"triceps" },
+        { id:"e_triceps_dip_b", label:"Triceps Dip Bradla", type:"bodyweight", coef:0.7, muscle:"triceps" },
+        { id:"e_triceps_dip_z", label:"Triceps Dip Židle", type:"bodyweight", coef:0.7, muscle:"triceps" },
+        { id:"e_expander", label:"Expander na lopatky", type:"single", muscle:"back" },
+        { id:"e_zada_kb", label:"Záda KB 20 kg", type:"ladder", weights:[20], muscle:"back" },
+        { id:"e_wrist_roller", label:"Posilovací kolečko na zápěstí", type:"single", muscle:"forearms" }
+      ]},
+      { id:"g_core", icon:"🧘", title:"Core", exercises:[
+        { id:"e_core_zdvih", label:"Zdvih nohou v leže", type:"single", muscle:"core" },
+        { id:"e_core_tuck", label:"Tuck Crunch", type:"single", muscle:"core" },
+        { id:"e_core_twist0", label:"Twist bez činky", type:"single", muscle:"core" },
+        { id:"e_core_twist10", label:"Twist s 10 kg", type:"single", muscle:"core" },
+        { id:"e_core_plank", label:"Plank (sekundy)", type:"single", muscle:"core" },
+        { id:"e_core_plank_rot", label:"Plank s rotací", type:"single", muscle:"core" }
+      ]},
+      { id:"g_legs", icon:"🦵", title:"Nohy", exercises:[
+        { id:"e_legs_osa", label:"Dřepy osa", type:"ladder", weights:[30,35,40,45,50], muscle:"quads", addBodyweight:true },
+        { id:"e_legs_kb2", label:"Dřepy KB 2x20", type:"ladder", weights:[40], muscle:"quads", addBodyweight:true },
+        { id:"e_legs_kb1", label:"Dřepy KB 1x20", type:"ladder", weights:[20], muscle:"quads", addBodyweight:true },
+        { id:"e_legs_bez", label:"Dřepy bez zátěže", type:"bodyweight", coef:1, muscle:"quads" },
+        { id:"e_legs_vypony", label:"Výpony špičky 40kg", type:"ladder", weights:[40], muscle:"calves", addBodyweight:true },
+        { id:"e_legs_jedna", label:"Dřepy na jedné noze", type:"bodyweight", coef:1, muscle:"quads" },
+        { id:"e_legs_split", label:"Split squat", type:"bodyweight", coef:1, muscle:"glutes" }
+      ]}
+    ]
+  };
+}
+
+const MUSCLE_DEFS = [
+  {k:"chest", label:"Hrudník", view:"front"},
+  {k:"back", label:"Záda", view:"back"},
+  {k:"shoulders", label:"Ramena", view:"both"},
+  {k:"biceps", label:"Biceps", view:"front"},
+  {k:"triceps", label:"Triceps", view:"back"},
+  {k:"forearms", label:"Předloktí", view:"both"},
+  {k:"core", label:"Břicho / Core", view:"front"},
+  {k:"quads", label:"Přední stehno", view:"front"},
+  {k:"hamstrings", label:"Zadní stehno", view:"back"},
+  {k:"glutes", label:"Hýždě", view:"back"},
+  {k:"calves", label:"Lýtka", view:"both"},
+];
+
+/* migrace existujícího configu (v localStorage) na v3 typologii */
+const V3_UPGRADE_MAP = {
+  e_ohp_uzko:{type:"bodyweight",coef:0.65}, e_ohp_siroko:{type:"bodyweight",coef:0.65},
+  e_hrazda_nad:{type:"bodyweight",coef:1}, e_hrazda_pod:{type:"bodyweight",coef:1},
+  e_pritahy_kb:{type:"ladder",weights:[20]}, e_trx:{type:"bodyweight",coef:0.5},
+  e_rozpazky:{type:"ladder",weights:[10]}, e_rozpacky:{type:"ladder",weights:[28]},
+  e_biceps_z:{type:"ladder",weights:[37]}, e_biceps_5:{type:"ladder",weights:[10]},
+  e_biceps_14:{type:"ladder",weights:[28]}, e_triceps_z:{type:"ladder",weights:[37]},
+  e_triceps_dip_b:{type:"bodyweight",coef:0.7}, e_triceps_dip_z:{type:"bodyweight",coef:0.7},
+  e_zada_kb:{type:"ladder",weights:[20]},
+  e_legs_kb2:{type:"ladder",weights:[40]}, e_legs_kb1:{type:"ladder",weights:[20]},
+  e_legs_bez:{type:"bodyweight",coef:1}, e_legs_vypony:{type:"ladder",weights:[40]},
+  e_legs_jedna:{type:"bodyweight",coef:1}, e_legs_split:{type:"bodyweight",coef:1}
+};
+function upgradeConfigToV3(cfg){
+  cfg.groups.forEach(g=> g.exercises.forEach(ex=>{
+    const up = V3_UPGRADE_MAP[ex.id];
+    if(up) Object.assign(ex, up);
+  }));
+  const upper = cfg.groups.find(g=>g.id==="g_upper");
+  if(upper && !upper.exercises.some(e=>e.id==="e_wrist_roller")){
+    upper.exercises.push({ id:"e_wrist_roller", label:"Posilovací kolečko na zápěstí", type:"single" });
+  }
+  cfg.version = 3;
+}
+const V4_MUSCLE_MAP = {
+  e_bench:"chest", e_deadlift:"back", e_ohp:"shoulders", e_ohp_uzko:"triceps", e_ohp_siroko:"chest",
+  e_hrazda_nad:"back", e_hrazda_pod:"biceps", e_pritahy_kb:"back", e_trx:"back",
+  e_rozpazky:"shoulders", e_rozpacky:"shoulders", e_biceps_z:"biceps", e_biceps_5:"biceps", e_biceps_14:"biceps",
+  e_triceps_z:"triceps", e_triceps_dip_b:"triceps", e_triceps_dip_z:"triceps", e_expander:"back", e_zada_kb:"back",
+  e_wrist_roller:"forearms", e_core_zdvih:"core", e_core_tuck:"core", e_core_twist0:"core", e_core_twist10:"core",
+  e_core_plank:"core", e_core_plank_rot:"core", e_legs_osa:"quads", e_legs_kb2:"quads", e_legs_kb1:"quads",
+  e_legs_bez:"quads", e_legs_vypony:"calves", e_legs_jedna:"quads", e_legs_split:"glutes"
+};
+function upgradeConfigToV4(cfg){
+  cfg.groups.forEach(g=> g.exercises.forEach(ex=>{
+    if(ex.muscle===undefined) ex.muscle = V4_MUSCLE_MAP[ex.id] || "";
+  }));
+  cfg.version = 4;
+}
+const V5_SECONDARY_MAP = {
+  e_bench:["triceps","shoulders"], e_deadlift:["hamstrings","glutes","forearms"], e_ohp:["triceps"],
+  e_ohp_uzko:["chest","shoulders"], e_ohp_siroko:["triceps","shoulders"],
+  e_hrazda_nad:["biceps","forearms"], e_hrazda_pod:["back","forearms"],
+  e_pritahy_kb:["biceps","shoulders"], e_trx:["biceps"],
+  e_biceps_z:["forearms"], e_biceps_5:["forearms"], e_biceps_14:["forearms"],
+  e_triceps_dip_b:["chest","shoulders"], e_triceps_dip_z:["chest"],
+  e_expander:["shoulders"], e_zada_kb:["biceps"],
+  e_legs_osa:["glutes","hamstrings"], e_legs_kb2:["glutes"], e_legs_kb1:["glutes"], e_legs_bez:["glutes"],
+  e_legs_jedna:["glutes","hamstrings"], e_legs_split:["quads","hamstrings"]
+};
+function upgradeConfigToV5(cfg){
+  cfg.groups.forEach(g=> g.exercises.forEach(ex=>{
+    if(ex.secondary===undefined) ex.secondary = V5_SECONDARY_MAP[ex.id] || [];
+  }));
+  cfg.version = 5;
+}
+const V6_ADDBODYWEIGHT_IDS = ["e_legs_osa","e_legs_kb2","e_legs_kb1","e_legs_vypony"];
+function upgradeConfigToV6(cfg){
+  cfg.groups.forEach(g=> g.exercises.forEach(ex=>{
+    if(ex.addBodyweight===undefined) ex.addBodyweight = V6_ADDBODYWEIGHT_IDS.includes(ex.id);
+  }));
+  cfg.version = 6;
+}
+function upgradeConfigToV7(cfg){
+  const strength = cfg.groups.find(g=>g.id==="g_strength");
+  if(strength && !strength.exercises.some(e=>e.id==="e_bench_db")){
+    const benchIdx = strength.exercises.findIndex(e=>e.id==="e_bench");
+    const dbEx = { id:"e_bench_db", label:"Bench s jednoručkami", type:"ladder", weights:[20,24,28.4,32,36,40,44,48], muscle:"chest", secondary:["triceps","shoulders"] };
+    if(benchIdx>=0) strength.exercises.splice(benchIdx+1, 0, dbEx);
+    else strength.exercises.push(dbEx);
+  }
+  cfg.version = 7;
+}
+
+const SPORT_FIELD_DEFS = [
+  {k:"duration", label:"Doba trvání (min)", type:"text"},
+  {k:"km", label:"Vzdálenost (km)", type:"text"},
+  {k:"tempo", label:"Tempo (min/km)", type:"text"},
+  {k:"elevation", label:"Převýšení (m)", type:"text"},
+  {k:"steps", label:"Kadence (kroků/min)", type:"text"},
+  {k:"hrAvg", label:"TF průměr (bpm)", type:"number"},
+  {k:"hrMax", label:"TF max (bpm)", type:"number"},
+  {k:"tss", label:"TSS", type:"number"},
+  {k:"vo2max", label:"Odhad VO2max", type:"text"},
+  {k:"weightBefore", label:"Váha před (kg)", type:"number"},
+  {k:"weightAfter", label:"Váha po (kg)", type:"number"},
+];
+function defaultSports(){
+  return { version:5, sports:[
+    { id:"s_run", icon:"🏃", title:"Běh", fields:["duration","km","tempo","elevation","steps","vo2max","weightBefore","weightAfter"] },
+    { id:"s_capoeira", icon:"🤸", title:"Capoeira", fields:["duration","hrAvg","hrMax"] },
+    { id:"s_stretch", icon:"🧘", title:"Strečink", fields:["duration","hrAvg","hrMax","tss"] }
+  ]};
+}
+function upgradeSportsToV2(sp){
+  // TF/TF max/TSS jsou teď obecné (sekce Suunto metriky) — u výchozího Běhu je nechceme zdvojeně
+  const run = sp.sports.find(s=>s.id==="s_run");
+  if(run) run.fields = run.fields.filter(f=> f!=="hrAvg" && f!=="hrMax" && f!=="tss");
+  sp.version = 2;
+}
+function upgradeSportsToV3(sp){
+  const run = sp.sports.find(s=>s.id==="s_run");
+  if(run && !run.fields.includes("vo2max")) run.fields.push("vo2max");
+  sp.version = 3;
+}
+function upgradeSportsToV4(sp){
+  const run = sp.sports.find(s=>s.id==="s_run");
+  if(run){
+    if(!run.fields.includes("weightBefore")) run.fields.push("weightBefore");
+    if(!run.fields.includes("weightAfter")) run.fields.push("weightAfter");
+  }
+  sp.version = 4;
+}
+function upgradeSportsToV5(sp){
+  if(!sp.sports.some(s=>s.id==="s_stretch")){
+    sp.sports.push({ id:"s_stretch", icon:"🧘", title:"Strečink", fields:["duration","hrAvg","hrMax","tss"] });
+  }
+  sp.version = 5;
+}
+
+const META_FIELDS = [
+  {k:"trainNum", label:"Trénink č.", type:"number"},
+  {k:"date",     label:"Datum",      type:"date"},
+  {k:"part",     label:"Část dne",   type:"text", placeholder:"ráno / večer"},
+  {k:"weight",   label:"Váha (kg)",  type:"number", step:"0.1"},
+  {k:"timeStart",label:"Začátek",    type:"text", placeholder:"5:00"},
+  {k:"timeEnd",  label:"Konec",      type:"text", placeholder:"5:35"},
+  {k:"duration", label:"Délka (min)",type:"text"},
+  {k:"sleep",    label:"Spánek (h)", type:"number"},
+  {k:"feel",     label:"Pocit (1-10)",type:"number"},
+  {k:"fatigue",  label:"Únava (1-10)",type:"number"},
+  {k:"rpe",      label:"RPE tréninku (1-10)", type:"number"},
+  {k:"priorActivity", label:"Navazuje na aktivitu", type:"text"},
+];
+const SUUNTO_FIELDS = [
+  {k:"hrAvg", label:"Průměrná TF (bpm)", type:"number"},
+  {k:"hrMax", label:"Maximální TF (bpm)", type:"number"},
+  {k:"tss",   label:"TSS", type:"number", span2:true},
+];
+const PROFILE_FIELDS = [
+  {k:"height", label:"Výška (cm)", type:"number"},
+  {k:"dob", label:"Datum narození", type:"date"},
+  {k:"gender", label:"Pohlaví", type:"select", options:[["","–"],["muz","Muž"],["zena","Žena"],["jine","Neuvedeno"]]},
+  {k:"restingHR", label:"Klidová TF (bpm)", type:"number", span2:true},
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let CONFIG = null, SPORTS = null, records = [], current = null;
+let muscleMode = "today"; // "today" | "neglect"
+
+function loadTheme(){
+  const t = localStorage.getItem("trenink_theme") || "dark";
+  document.body.setAttribute("data-theme", t);
+  document.getElementById("themeToggle").textContent = t==="light" ? "☀️" : "🌙";
+}
+function toggleTheme(){
+  const cur = document.body.getAttribute("data-theme") === "light" ? "light" : "dark";
+  const next = cur==="light" ? "dark" : "light";
+  document.body.setAttribute("data-theme", next);
+  localStorage.setItem("trenink_theme", next);
+  document.getElementById("themeToggle").textContent = next==="light" ? "☀️" : "🌙";
+}
+
+/* ============================================================
+   STOPKY — měření času cvičení s ruční editací výsledku
+   ============================================================ */
+const STOPWATCH_KEY = "trenink_stopwatch_v1";
+let swAll = {};
+let swInterval = null;
+function loadStopwatchAll(){
+  try{ swAll = JSON.parse(localStorage.getItem(STOPWATCH_KEY)) || {}; }catch(e){ swAll = {}; }
+}
+function persistStopwatchAll(){ localStorage.setItem(STOPWATCH_KEY, JSON.stringify(swAll)); }
+function getSwState(){
+  const key = String(current.id);
+  if(!swAll[key]) swAll[key] = { startedAt:null, accumulatedMs:0, running:false };
+  return swAll[key];
+}
+function swElapsedMs(state){ return state.accumulatedMs + (state.running && state.startedAt ? (Date.now()-state.startedAt) : 0); }
+function msToClock(ms){
+  const totalSec = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60), s = totalSec%60;
+  if(h>0) return h+":"+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0');
+  return m+":"+String(s).padStart(2,'0');
+}
+function nowHHMM(){ const d = new Date(); return d.getHours()+":"+String(d.getMinutes()).padStart(2,'0'); }
+function renderStopwatch(){
+  const state = getSwState();
+  const timeEl = document.getElementById("swTime"); if(!timeEl) return;
+  timeEl.textContent = msToClock(swElapsedMs(state));
+  const btn = document.getElementById("swToggleBtn");
+  btn.textContent = state.running ? "⏸ Pauza" : "▶️ Start";
+  btn.classList.toggle("running", state.running);
+}
+function initStopwatchForCurrent(){
+  if(swInterval){ clearInterval(swInterval); swInterval=null; }
+  const state = getSwState();
+  if(state.running) swInterval = setInterval(renderStopwatch, 1000);
+  renderStopwatch();
+}
+function applyStopwatchToDuration(ms){
+  const totalSec = Math.round(ms/1000);
+  const m = Math.floor(totalSec/60), s = totalSec%60;
+  const str = m+":"+String(s).padStart(2,'0');
+  current.meta.duration = str;
+  const el = document.querySelector('input[data-group="meta"][data-key="duration"]');
+  if(el) el.value = str;
+  updateDial();
+}
+function toggleStopwatch(){
+  const state = getSwState();
+  if(state.running){
+    state.accumulatedMs = swElapsedMs(state);
+    state.running = false; state.startedAt = null;
+    if(swInterval){ clearInterval(swInterval); swInterval=null; }
+    applyStopwatchToDuration(state.accumulatedMs);
+    if(!current.meta.timeEnd){
+      current.meta.timeEnd = nowHHMM();
+      const el = document.querySelector('input[data-group="meta"][data-key="timeEnd"]');
+      if(el) el.value = current.meta.timeEnd;
+    }
+  } else {
+    state.startedAt = Date.now();
+    state.running = true;
+    swInterval = setInterval(renderStopwatch, 1000);
+    if(!current.meta.timeStart){
+      current.meta.timeStart = nowHHMM();
+      const el = document.querySelector('input[data-group="meta"][data-key="timeStart"]');
+      if(el) el.value = current.meta.timeStart;
+    }
+  }
+  persistStopwatchAll();
+  renderStopwatch();
+  updateDots();
+}
+function resetStopwatch(){
+  if(!confirm("Vynulovat stopky pro tento záznam? (Pole Délka zůstane, jak je — uprav ho ručně, pokud chceš.)")) return;
+  const state = getSwState();
+  if(swInterval){ clearInterval(swInterval); swInterval=null; }
+  state.accumulatedMs = 0; state.running = false; state.startedAt = null;
+  persistStopwatchAll();
+  renderStopwatch();
+}
+
+function uid(prefix){ return prefix + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function loadConfig(){
+  try{ CONFIG = JSON.parse(localStorage.getItem(CONFIG_KEY)); }catch(e){ CONFIG = null; }
+  if(!CONFIG || !CONFIG.groups){ CONFIG = defaultConfig(); }
+  else {
+    if(!CONFIG.version || CONFIG.version < 3) upgradeConfigToV3(CONFIG);
+    if(CONFIG.version < 4) upgradeConfigToV4(CONFIG);
+    if(CONFIG.version < 5) upgradeConfigToV5(CONFIG);
+    if(CONFIG.version < 6) upgradeConfigToV6(CONFIG);
+    if(CONFIG.version < 7) upgradeConfigToV7(CONFIG);
+  }
+  persistConfig();
+}
+function persistConfig(){ localStorage.setItem(CONFIG_KEY, JSON.stringify(CONFIG)); }
+
+function loadSports(){
+  try{ SPORTS = JSON.parse(localStorage.getItem(SPORTS_KEY)); }catch(e){ SPORTS = null; }
+  if(!SPORTS || !SPORTS.sports) SPORTS = defaultSports();
+  else {
+    if(!SPORTS.version || SPORTS.version < 2) upgradeSportsToV2(SPORTS);
+    if(SPORTS.version < 3) upgradeSportsToV3(SPORTS);
+    if(SPORTS.version < 4) upgradeSportsToV4(SPORTS);
+    if(SPORTS.version < 5) upgradeSportsToV5(SPORTS);
+  }
+  persistSports();
+}
+function persistSports(){ localStorage.setItem(SPORTS_KEY, JSON.stringify(SPORTS)); }
+
+function loadRecords(){
+  try{ records = JSON.parse(localStorage.getItem(RECORDS_KEY)) || []; }catch(e){ records = []; }
+  if(records.length===0){
+    try{
+      const oldV2 = JSON.parse(localStorage.getItem(OLD_RECORDS_KEY_V2));
+      if(oldV2 && oldV2.length){ records = oldV2.map(migrateV2Record); persistRecords(); return; }
+    }catch(e){}
+    try{
+      const oldV1 = JSON.parse(localStorage.getItem(OLD_RECORDS_KEY_V1));
+      if(oldV1 && oldV1.length){ records = oldV1.map(migrateV1Record).map(migrateV2Record); persistRecords(); }
+    }catch(e){}
+  }
+}
+function persistRecords(){ localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); }
+
+function migrateV2Record(r){
+  const sports = {};
+  if(r.run && (r.run.km || r.run.cas || r.run.tfPrum)){
+    sports.s_run = { duration:r.run.cas||"", km:r.run.km||"", tempo:r.run.tempo||"", elevation:r.run.prevyseni||"", steps:"", hrAvg:r.run.tfPrum||"", hrMax:r.run.tfMax||"", tss:r.run.tssRun||"" };
+  }
+  return { id:r.id, meta:r.meta||{}, suunto:r.suunto||{}, data:r.data||{}, sports, recordManual:!!r.recordManual };
+}
+function migrateV1Record(r){
+  const BENCH_W=[40,45,50,55,60,65,70,75,80,85,90,95,100], DEADLIFT_W=[60,65,70,75,80,85,90,95,100,105,110],
+        OHP_W=[30,35,40,45,50], LEGS_W=[30,35,40,45,50];
+  const OHP_EXTRA_IDS = ["e_ohp_uzko","e_ohp_siroko","e_hrazda_nad","e_hrazda_pod","e_pritahy_kb","e_trx","e_rozpazky","e_rozpacky","e_biceps_z","e_biceps_5","e_biceps_14","e_triceps_z","e_triceps_dip_b","e_triceps_dip_z","e_expander","e_zada_kb"];
+  const CORE_IDS = ["e_core_zdvih","e_core_tuck","e_core_twist0","e_core_twist10","e_core_plank","e_core_plank_rot"];
+  const LEGS_EXTRA_IDS = ["e_legs_kb2","e_legs_kb1","e_legs_bez","e_legs_vypony","e_legs_jedna","e_legs_split"];
+  const data = {};
+  const ladder=(weights, arr, exId)=>{ const o={}; weights.forEach((w,i)=>{ if(arr && arr[i]) o[w]=arr[i]; }); data[exId]=o; };
+  ladder(BENCH_W, r.bench, "e_bench"); ladder(DEADLIFT_W, r.deadlift, "e_deadlift");
+  ladder(OHP_W, r.ohp, "e_ohp"); ladder(LEGS_W, r.legs, "e_legs_osa");
+  OHP_EXTRA_IDS.forEach((id,i)=> data[id] = (r.ohpExtra && r.ohpExtra[i]) || "");
+  CORE_IDS.forEach((id,i)=> data[id] = (r.core && r.core[i]) || "");
+  LEGS_EXTRA_IDS.forEach((id,i)=> data[id] = (r.legsExtra && r.legsExtra[i]) || "");
+  return { id:r.id||Date.now(), meta:r.meta||{}, suunto:r.suunto||{}, run:r.run||{}, data, recordManual:!!r.recordManual };
+}
+
+function blankRecord(){
+  const maxNum = records.reduce((m,r)=> Math.max(m, parseInt(r.meta.trainNum)||0), 0);
+  const today = new Date();
+  const d = today.toISOString().slice(0,10);
+  const lastWeight = records.length ? (records[records.length-1].meta.weight || "") : "";
+  const data = {};
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{ data[ex.id] = ex.type==="ladder" ? {} : ""; }));
+  const sports = {};
+  SPORTS.sports.forEach(sp=>{ sports[sp.id] = {}; SPORT_FIELD_DEFS.forEach(f=> sports[sp.id][f.k] = ""); });
+  return {
+    id: Date.now(),
+    meta:   fieldsToObj(META_FIELDS,   {trainNum:maxNum+1, date:d, weight:lastWeight}),
+    suunto: fieldsToObj(SUUNTO_FIELDS, {}),
+    data, sports, setLogs:{}, recordManual:false
+  };
+}
+function fieldsToObj(fields, overrides){
+  const o = {}; fields.forEach(f=> o[f.k] = overrides[f.k] !== undefined ? overrides[f.k] : ""); return o;
+}
+function ensureExerciseData(rec, ex){ if(rec.data[ex.id] === undefined) rec.data[ex.id] = ex.type==="ladder" ? {} : ""; }
+function ensureSportData(rec, sp){
+  if(!rec.sports) rec.sports = {};
+  if(!rec.sports[sp.id]){ rec.sports[sp.id] = {}; SPORT_FIELD_DEFS.forEach(f=> rec.sports[sp.id][f.k] = ""); }
+}
+
+/* ============================================================
+   PŘIPNUTÉ CVIKY — rychlý přístup pro okruhy/série opakované dokola
+   ============================================================ */
+let pinnedRows = [];
+function loadPinned(){
+  try{ pinnedRows = JSON.parse(localStorage.getItem(PINNED_KEY)) || []; }catch(e){ pinnedRows = []; }
+}
+function persistPinned(){ localStorage.setItem(PINNED_KEY, JSON.stringify(pinnedRows)); }
+
+/* ============================================================
+   OSOBNÍ KARTA — výška, datum narození, pohlaví, klidová TF
+   ============================================================ */
+let PROFILE = {};
+function loadProfile(){
+  try{ PROFILE = JSON.parse(localStorage.getItem(PROFILE_KEY)) || {}; }catch(e){ PROFILE = {}; }
+}
+function persistProfile(){ localStorage.setItem(PROFILE_KEY, JSON.stringify(PROFILE)); }
+
+/* ---- Tělesné míry (obvody, fotky) — volitelný periodický log, nezávislý na trénincích ---- */
+const BODY_METRIC_FIELDS = [
+  {k:"waist", label:"Pas (cm)"},
+  {k:"chest", label:"Hrudník (cm)"},
+  {k:"arm",   label:"Paže (cm)"},
+  {k:"thigh", label:"Stehno (cm)"},
+  {k:"hip",   label:"Boky (cm)"},
+  {k:"bpSys", label:"TK systola (mmHg)"},
+  {k:"bpDia", label:"TK diastola (mmHg)"},
+];
+let bodyLog = [];
+let pendingBodyPhotos = [];
+function loadBodyLog(){
+  try{ bodyLog = JSON.parse(localStorage.getItem(BODYLOG_KEY)) || []; }catch(e){ bodyLog = []; }
+  // migrace ze starého formátu s jedinou fotkou (entry.photo) na pole entry.photos
+  bodyLog.forEach(e=>{
+    if(e.photo && !e.photos){ e.photos = [e.photo]; delete e.photo; }
+    if(!e.photos) e.photos = [];
+  });
+}
+function persistBodyLog(){
+  try{ localStorage.setItem(BODYLOG_KEY, JSON.stringify(bodyLog)); return true; }
+  catch(e){ return false; }
+}
+function handleBodyPhotoPick(inputEl, previewHostId){
+  const files = inputEl.files ? Array.from(inputEl.files) : [];
+  if(!files.length) return;
+  let remaining = files.length;
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxDim = 640;
+        let w = img.width, h = img.height;
+        if(w>=h && w>maxDim){ h = Math.round(h*maxDim/w); w = maxDim; }
+        else if(h>w && h>maxDim){ w = Math.round(w*maxDim/h); h = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        pendingBodyPhotos.push(canvas.toDataURL("image/jpeg", 0.55));
+        remaining--;
+        if(remaining===0) renderPendingBodyPhotos(previewHostId);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function renderPendingBodyPhotos(hostId){
+  const host = document.getElementById(hostId);
+  if(!host) return;
+  if(pendingBodyPhotos.length===0){ host.innerHTML = ""; return; }
+  host.innerHTML = pendingBodyPhotos.map((p,i)=>`
+    <div class="bodylog-pending-thumb">
+      <img src="${p}">
+      <button type="button" onclick="removePendingBodyPhoto(${i},'${hostId}')" title="Odebrat">✕</button>
+    </div>`).join("");
+}
+function removePendingBodyPhoto(i, hostId){
+  pendingBodyPhotos.splice(i,1);
+  renderPendingBodyPhotos(hostId);
+}
+function clearBodyLogForm(){
+  BODY_METRIC_FIELDS.forEach(f=>{ const el=document.getElementById("bodyMetric_"+f.k); if(el) el.value=""; });
+  const noteEl = document.getElementById("bodyLogNote"); if(noteEl) noteEl.value="";
+  const fileEl = document.getElementById("bodyLogPhotoInput"); if(fileEl) fileEl.value="";
+  pendingBodyPhotos = [];
+  renderPendingBodyPhotos("bodyLogPhotoPreview");
+  const dateEl = document.getElementById("bodyLogDate"); if(dateEl) dateEl.value = new Date().toISOString().slice(0,10);
+}
+function addBodyLogEntry(){
+  const dateEl = document.getElementById("bodyLogDate");
+  const entry = { id: Date.now(), date: (dateEl && dateEl.value) || new Date().toISOString().slice(0,10) };
+  let hasAny = false;
+  BODY_METRIC_FIELDS.forEach(f=>{
+    const el = document.getElementById("bodyMetric_"+f.k);
+    if(el && el.value){ entry[f.k] = parseFloat(el.value); hasAny = true; }
+  });
+  const noteEl = document.getElementById("bodyLogNote");
+  if(noteEl && noteEl.value.trim()){ entry.note = noteEl.value.trim(); hasAny = true; }
+  if(pendingBodyPhotos.length){ entry.photos = pendingBodyPhotos.slice(); hasAny = true; }
+  if(!hasAny){ showToast("Vyplň aspoň jednu míru, poznámku nebo fotku"); return; }
+  bodyLog.push(entry);
+  bodyLog.sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+  if(!persistBodyLog()){
+    bodyLog = bodyLog.filter(e=>e.id!==entry.id);
+    showToast("Nedostatek úložiště v telefonu — zkus záznam s méně fotkami, nebo smaž starší fotky níže");
+    return;
+  }
+  clearBodyLogForm();
+  renderBodyLogList();
+  renderBodyMetricsChart();
+  showToast("Záznam přidán");
+}
+function deleteBodyLogEntry(id){
+  if(!confirm("Smazat tento záznam těla?")) return;
+  bodyLog = bodyLog.filter(e=>e.id!==id);
+  persistBodyLog();
+  renderBodyLogList();
+  renderBodyMetricsChart();
+}
+function deleteBodyLogPhoto(entryId, photoIdx){
+  const e = bodyLog.find(x=>x.id===entryId);
+  if(!e || !e.photos) return;
+  e.photos.splice(photoIdx,1);
+  persistBodyLog();
+  renderBodyLogList();
+}
+let editingBodyLogId = null;
+function toggleBodyLogEdit(id){
+  editingBodyLogId = (editingBodyLogId===id) ? null : id;
+  renderBodyLogList();
+}
+function saveBodyLogEdit(id){
+  const e = bodyLog.find(x=>x.id===id);
+  if(!e) return;
+  const dateEl = document.getElementById("bLogEditDate_"+id);
+  if(dateEl && dateEl.value) e.date = dateEl.value;
+  BODY_METRIC_FIELDS.forEach(f=>{
+    const el = document.getElementById("bLogEdit_"+id+"_"+f.k);
+    if(!el) return;
+    if(el.value!==""){ e[f.k] = parseFloat(el.value); }
+    else delete e[f.k];
+  });
+  const noteEl = document.getElementById("bLogEditNote_"+id);
+  if(noteEl){ if(noteEl.value.trim()) e.note = noteEl.value.trim(); else delete e.note; }
+  bodyLog.sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+  persistBodyLog();
+  editingBodyLogId = null;
+  renderBodyLogList();
+  renderBodyMetricsChart();
+  showToast("Záznam upraven");
+}
+function renderBodyLogList(){
+  const host = document.getElementById("bodyLogList");
+  if(!host) return;
+  if(bodyLog.length===0){ host.innerHTML = `<div class="section-note">Zatím žádné záznamy. Přidej první měření výše — stačí i jen jedna hodnota nebo fotka.</div>`; return; }
+  const sorted = [...bodyLog].sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+  host.innerHTML = sorted.map(e=>{
+    const cmMetrics = BODY_METRIC_FIELDS.filter(f=> !f.k.startsWith("bp") && e[f.k]!=null).map(f=> f.label.split(" ")[0]+" "+e[f.k]+"cm");
+    const bpParts = [];
+    if(e.bpSys!=null || e.bpDia!=null) bpParts.push(`TK ${e.bpSys??"?"}/${e.bpDia??"?"} mmHg`);
+    const metrics = [...cmMetrics, ...bpParts].join(" · ");
+    const photos = e.photos || [];
+    const thumbs = photos.length
+      ? `<div class="bodylog-thumbs">${photos.map((p,i)=>`
+          <div class="bodylog-thumb-wrap">
+            <img src="${p}" class="bodylog-thumb" onclick="window.open('${p}','_blank')">
+            <button type="button" class="bodylog-thumb-del" onclick="deleteBodyLogPhoto(${e.id},${i})" title="Smazat fotku">✕</button>
+          </div>`).join("")}</div>`
+      : `<div class="bodylog-thumb bodylog-thumb-empty"></div>`;
+    return `<div class="bodylog-row-wrap">
+      <div class="bodylog-row">
+        ${thumbs}
+        <div class="bodylog-info">
+          <div class="bodylog-date">${formatDateDisplay(e.date)}</div>
+          <div class="bodylog-metrics">${metrics || "–"}</div>
+          ${e.note ? `<div class="bodylog-note">${e.note}</div>` : ""}
+        </div>
+        <button type="button" class="bodylog-edit" onclick="toggleBodyLogEdit(${e.id})" title="Upravit">✏️</button>
+        <button type="button" class="bodylog-del" onclick="deleteBodyLogEntry(${e.id})">🗑</button>
+      </div>
+      ${editingBodyLogId===e.id ? `
+      <div class="bodylog-edit-panel">
+        <div class="field"><label>Datum</label><input type="date" id="bLogEditDate_${e.id}" value="${e.date||''}"></div>
+        <div class="measure-fields">
+          ${BODY_METRIC_FIELDS.map(f=>`<div class="measure-field"><label>${f.label}</label><input type="number" step="0.1" inputmode="decimal" id="bLogEdit_${e.id}_${f.k}" value="${e[f.k]??''}"></div>`).join("")}
+        </div>
+        <div class="field"><label>Poznámka</label><input type="text" id="bLogEditNote_${e.id}" value="${e.note||''}"></div>
+        <button type="button" class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="saveBodyLogEdit(${e.id})">💾 Uložit úpravu</button>
+      </div>` : ""}
+    </div>`;
+  }).join("");
+}
+let chartBodyMetricsInstance = null;
+function renderBodyMetricsChart(){
+  const canvas = document.getElementById("chartBodyMetrics");
+  if(!canvas) return;
+  const sorted = [...bodyLog].filter(e=>e.date).sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+  const labels = sorted.map(e=> formatDateDisplay(e.date));
+  const colors = {waist:"#e5484d", chest:"#4a9eff", arm:"#f2b134", thigh:"#7ed957", hip:"#a970ff"};
+  const datasets = BODY_METRIC_FIELDS.filter(f=> !f.k.startsWith("bp") && sorted.some(e=>e[f.k]!=null)).map(f=>({
+    label: f.label, data: sorted.map(e=> e[f.k]!=null ? e[f.k] : null), borderColor: colors[f.k], backgroundColor: colors[f.k], tension:0.25, spanGaps:true
+  }));
+  if(chartBodyMetricsInstance){ chartBodyMetricsInstance.destroy(); chartBodyMetricsInstance = null; }
+  canvas.style.display = datasets.length ? "" : "none";
+  if(!datasets.length) return;
+  chartBodyMetricsInstance = new Chart(canvas.getContext("2d"), { type:"line", data:{ labels, datasets }, options: chartBaseOptions("cm") });
+  renderBloodPressureChart(sorted, labels);
+}
+let chartBpInstance = null;
+function renderBloodPressureChart(sorted, labels){
+  const canvas = document.getElementById("chartBloodPressure");
+  if(!canvas) return;
+  const hasAny = sorted.some(e=> e.bpSys!=null || e.bpDia!=null);
+  if(chartBpInstance){ chartBpInstance.destroy(); chartBpInstance = null; }
+  canvas.style.display = hasAny ? "" : "none";
+  if(!hasAny) return;
+  chartBpInstance = new Chart(canvas.getContext("2d"), {
+    type:"line",
+    data:{ labels, datasets:[
+      { label:"Systola", data: sorted.map(e=> e.bpSys ?? null), borderColor:"#e5484d", backgroundColor:"#e5484d", tension:0.25, spanGaps:true },
+      { label:"Diastola", data: sorted.map(e=> e.bpDia ?? null), borderColor:"#4a9eff", backgroundColor:"#4a9eff", tension:0.25, spanGaps:true }
+    ]},
+    options: chartBaseOptions("mmHg")
+  });
+}
+function buildProfileGrid(){
+  document.getElementById("profileGrid").innerHTML = PROFILE_FIELDS.map(f=>{
+    const val = PROFILE[f.k] || "";
+    if(f.type==="select"){
+      return `<div class="field ${f.span2?'span2':''}"><label>${f.label}</label>
+        <select data-profile="${f.k}">${f.options.map(([v,l])=>`<option value="${v}" ${val===v?'selected':''}>${l}</option>`).join("")}</select></div>`;
+    }
+    return `<div class="field ${f.span2?'span2':''}"><label>${f.label}</label>
+      <input type="${f.type}" value="${val}" data-profile="${f.k}"></div>`;
+  }).join("");
+  document.querySelectorAll('[data-profile]').forEach(el=>{
+    el.addEventListener("input", ()=>{ PROFILE[el.dataset.profile] = el.value; persistProfile(); renderProfileView(); });
+    el.addEventListener("change", ()=>{ PROFILE[el.dataset.profile] = el.value; persistProfile(); renderProfileView(); });
+  });
+}
+function getLatestWeight(){
+  const sorted = [...records].sort((a,b)=> (parseInt(b.meta.trainNum)||0)-(parseInt(a.meta.trainNum)||0));
+  for(const r of sorted){ if(r.meta.weight) return parseFloat(r.meta.weight); }
+  if(current && current.meta && current.meta.weight) return parseFloat(current.meta.weight);
+  return null;
+}
+function getAge(){
+  if(!PROFILE.dob) return null;
+  const dob = new Date(PROFILE.dob);
+  if(isNaN(dob.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if(m<0 || (m===0 && today.getDate()<dob.getDate())) age--;
+  return age;
+}
+function calcBMI(){
+  const w = getLatestWeight(), h = parseFloat(PROFILE.height);
+  if(!w || !h) return null;
+  return w / ((h/100)**2);
+}
+function bmiCategory(bmi){
+  if(bmi<18.5) return "podváha";
+  if(bmi<25) return "normální rozmezí";
+  if(bmi<30) return "nadváha";
+  return "vyšší hodnota";
+}
+function calcBMR(){
+  const w = getLatestWeight(), h = parseFloat(PROFILE.height), age = getAge();
+  if(!w || !h || age===null) return null;
+  const base = 10*w + 6.25*h - 5*age;
+  if(PROFILE.gender==="muz") return base + 5;
+  if(PROFILE.gender==="zena") return base - 161;
+  return base - 78; // prumer obou vzorcu, kdyz pohlavi neni zadano
+}
+function calcHRZones(){
+  const age = getAge();
+  if(age===null) return null;
+  const hrMax = 220 - age;
+  const hrRest = parseFloat(PROFILE.restingHR) || null;
+  const defs = [
+    {name:"Zóna 1 · Regenerace", lo:0.50, hi:0.60, color:"#7ed957"},
+    {name:"Zóna 2 · Vytrvalost", lo:0.60, hi:0.70, color:"#c7e05a"},
+    {name:"Zóna 3 · Tempo",      lo:0.70, hi:0.80, color:"#ffc94a"},
+    {name:"Zóna 4 · Práh",       lo:0.80, hi:0.90, color:"#ff8a4a"},
+    {name:"Zóna 5 · Anaerobní",  lo:0.90, hi:1.00, color:"#e5484d"},
+  ];
+  return { hrMax, hrRest, karvonen: !!hrRest, zones: defs.map(z=>{
+    const lo = hrRest ? Math.round(hrRest + z.lo*(hrMax-hrRest)) : Math.round(hrMax*z.lo);
+    const hi = hrRest ? Math.round(hrRest + z.hi*(hrMax-hrRest)) : Math.round(hrMax*z.hi);
+    return {...z, lo, hi};
+  })};
+}
+function renderProfileView(){
+  const dateEl = document.getElementById("bodyLogDate");
+  if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
+  renderBodyLogList();
+  renderBodyMetricsChart();
+  const statsHost = document.getElementById("profileStats");
+  const age = getAge();
+  const bmi = calcBMI();
+  const bmr = calcBMR();
+  const tdee = bmr ? Math.round(bmr*1.55) : null;
+  const rows = [];
+  rows.push({t:"Věk", v: age!==null ? age+" let" : "–"});
+  rows.push({t:"BMI", v: bmi ? bmi.toFixed(1)+" ("+bmiCategory(bmi)+")" : "–"});
+  rows.push({t:"Klidový metabolismus (BMR)", v: bmr ? Math.round(bmr)+" kcal/den" : "–"});
+  rows.push({t:"Odhad denní potřeby", v: tdee ? tdee+" kcal/den" : "–"});
+  statsHost.innerHTML = rows.map(r=>`<div class="zone-row"><span class="zone-name">${r.t}</span><span class="zone-range">${r.v}</span></div>`).join("");
+  if(!bmi && !bmr) statsHost.innerHTML += `<div class="section-note">Vyplň výšku (a datum narození pro BMR/věk) — váha se bere automaticky z posledního tréninku.</div>`;
+
+  if(bmi){
+    const bands = [
+      {label:"Podváha", range:"< 18.5", lo:0, hi:18.5, color:"#4a9eff"},
+      {label:"Normální rozmezí", range:"18.5 – 24.9", lo:18.5, hi:25, color:"#7ed957"},
+      {label:"Nadváha", range:"25 – 29.9", lo:25, hi:30, color:"#ffc94a"},
+      {label:"Vyšší hodnota (obezita)", range:"30 a víc", lo:30, hi:999, color:"#e5484d"},
+    ];
+    statsHost.innerHTML += `<div class="bmi-scale">` + bands.map(b=>{
+      const isCurrent = bmi>=b.lo && bmi<b.hi;
+      return `<div class="bmi-band ${isCurrent?'current':''}"><span class="bmi-dot" style="background:${b.color}"></span>
+        <span class="bmi-label">${b.label}</span><span class="bmi-range">${b.range}</span></div>`;
+    }).join("") + `</div>`;
+  }
+
+  const hrz = calcHRZones();
+  const zoneNote = document.getElementById("profileZoneNote");
+  const zoneHost = document.getElementById("profileZones");
+  if(!hrz){
+    zoneNote.textContent = "Vyplň datum narození, ať appka spočítá odhad max. tepové frekvence a zóny.";
+    zoneHost.innerHTML = "";
+  } else {
+    zoneNote.textContent = hrz.karvonen
+      ? `Počítáno z klidové TF (${hrz.hrRest}) a odhadu max. TF (220 − věk = ${hrz.hrMax}) — Karvonenova metoda.`
+      : `Počítáno jen z odhadu max. TF (220 − věk = ${hrz.hrMax}). Vyplň klidovou TF pro přesnější zóny.`;
+    zoneHost.innerHTML = hrz.zones.map(z=>`
+      <div class="zone-row"><span class="zone-dot" style="background:${z.color}"></span>
+        <span class="zone-name">${z.name}</span><span class="zone-range">${z.lo}–${z.hi} bpm</span></div>`).join("");
+  }
+}
+
+
+function pinKey(exId, weight){ return (weight!==undefined && weight!==null) ? exId+":"+weight : exId; }
+function isPinned(exId, weight){ return pinnedRows.includes(pinKey(exId, weight)); }
+function togglePin(exId, weight){
+  const key = pinKey(exId, weight);
+  const i = pinnedRows.indexOf(key);
+  if(i>=0) pinnedRows.splice(i,1); else pinnedRows.push(key);
+  persistPinned();
+  updatePinStarsUI(exId, weight);
+  renderPinnedSection();
+}
+function updatePinStarsUI(exId, weight){
+  const wAttr = (weight!==undefined && weight!==null) ? String(weight) : "";
+  const pinned = isPinned(exId, weight);
+  document.querySelectorAll(`.pin-star[data-ex="${exId}"][data-weight="${wAttr}"]`).forEach(btn=>{
+    btn.classList.toggle("active", pinned);
+    btn.textContent = pinned ? "⭐" : "☆";
+  });
+}
+const PINNED_COLLAPSE_KEY = "trenink_pinned_collapsed_v1";
+function togglePinnedCollapse(headEl){
+  const section = headEl.parentElement;
+  const willOpen = !section.classList.contains("open");
+  section.classList.toggle("open", willOpen);
+  const body = section.querySelector(".section-body");
+  body.style.maxHeight = willOpen ? body.scrollHeight + "px" : null;
+  localStorage.setItem(PINNED_COLLAPSE_KEY, willOpen ? "open" : "closed");
+}
+function applyPinnedCollapseState(){
+  const section = document.getElementById("pinnedSection");
+  if(!section) return;
+  const isOpen = localStorage.getItem(PINNED_COLLAPSE_KEY) !== "closed";
+  section.classList.toggle("open", isOpen);
+  const body = section.querySelector(".section-body");
+  body.style.maxHeight = isOpen ? body.scrollHeight + "px" : null;
+}
+function renderPinnedSection(){
+  const wrap = document.getElementById("pinnedBody");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  if(pinnedRows.length===0){
+    wrap.innerHTML = `<div class="section-note">Zatím nic není připnuté. Klepni na ☆ u cviku níže (třeba Bench, Core, Dřepy pro tvůj okruh) — objeví se tady nahoře, ať se mezi sekcemi nemusíš furt proplétat.</div>`;
+    applyPinnedCollapseState();
+    return;
+  }
+  pinnedRows.forEach((key, i)=>{
+    const idx = key.indexOf(":");
+    const exId = idx>=0 ? key.slice(0,idx) : key;
+    const weight = idx>=0 ? parseFloat(key.slice(idx+1)) : undefined;
+    const ex = findExerciseById(exId);
+    if(!ex) return;
+    const holder = document.createElement("div");
+    holder.className = "pinned-item";
+    holder.dataset.key = key;
+    const moveBtns = document.createElement("span");
+    moveBtns.className = "pinned-move";
+    moveBtns.innerHTML = `<button type="button" class="cfg-move" ${i===0?'style="visibility:hidden"':''} onclick="movePinned(${i},-1)">▲</button>
+      <button type="button" class="cfg-move" ${i===pinnedRows.length-1?'style="visibility:hidden"':''} onclick="movePinned(${i},1)">▼</button>`;
+    holder.appendChild(moveBtns);
+    const rowHost = document.createElement("div");
+    rowHost.className = "pinned-row-inner";
+    holder.appendChild(rowHost);
+    if(weight!==undefined) buildLadderRow(rowHost, ex, weight);
+    else buildSingleRow(rowHost, ex);
+    wrap.appendChild(holder);
+  });
+  // pojistka: znovu vynutit refresh kostiček/času pro jistotu (řeší případy, kdy se sekce staví dřív než jsou data doplněná)
+  pinnedRows.forEach(key=>{
+    const idx = key.indexOf(":");
+    const exId = idx>=0 ? key.slice(0,idx) : key;
+    const weight = idx>=0 ? parseFloat(key.slice(idx+1)) : undefined;
+    renderSetChips(exId, weight);
+    updateExTimeBadgeForKey(key);
+  });
+  applyPinnedCollapseState();
+}
+function movePinned(idx, dir){
+  const j = idx+dir;
+  if(j<0 || j>=pinnedRows.length) return;
+  [pinnedRows[idx], pinnedRows[j]] = [pinnedRows[j], pinnedRows[idx]];
+  persistPinned();
+  renderPinnedSection();
+}
+
+/* ============================================================
+   RENDER: META / SUUNTO
+   ============================================================ */
+function buildMetaGrid(){
+  document.getElementById("metaGrid").innerHTML = META_FIELDS.map(f=>{
+    if(f.k==="part"){
+      return `<div class="field span2"><label>${f.label}</label>
+        <div class="part-toggle" id="partToggle">
+          <button type="button" data-val="Ráno" onclick="setPart('Ráno')">🌅 Ráno</button>
+          <button type="button" data-val="Odpoledne" onclick="setPart('Odpoledne')">☀️ Odpoledne</button>
+          <button type="button" data-val="Večer" onclick="setPart('Večer')">🌙 Večer</button>
+        </div></div>`;
+    }
+    if(f.k==="priorActivity"){
+      return `<div class="field span2"><label>${f.label}</label>
+        <div class="prior-toggle">
+          <label class="switch"><input type="checkbox" id="priorActivityCheck" onchange="togglePriorActivity(this.checked)"><span class="track"></span><span class="thumb"></span></label>
+          <input type="text" id="priorActivityText" placeholder="např. po běhu" oninput="onPriorActivityText(this.value)" disabled>
+        </div></div>`;
+    }
+    if(f.k==="rpe"){
+      return `<div class="field span2"><label>${f.label} <span id="rirHint" style="text-transform:none;font-weight:500;color:var(--faint)"></span></label>
+        <input type="number" min="1" max="10" placeholder="1–10" data-group="meta" data-key="rpe" oninput="onMetaInput('meta','rpe',this.value); updateRirHint(this.value);"></div>`;
+    }
+    return `<div class="field ${f.span2?'span2':''}"><label>${f.label}</label>
+      <input type="${f.type}" ${f.step?`step="${f.step}"`:''} placeholder="${f.placeholder||''}"
+        data-group="meta" data-key="${f.k}" oninput="onMetaInput('meta','${f.k}',this.value)"></div>`;
+  }).join("");
+}
+function setPart(val){
+  current.meta.part = (current.meta.part===val) ? "" : val;
+  updatePartToggleUI(); updateDial(); updateDots();
+}
+function updatePartToggleUI(){
+  document.querySelectorAll("#partToggle button").forEach(b=> b.classList.toggle("active", b.dataset.val===current.meta.part));
+}
+function togglePriorActivity(checked){
+  const textEl = document.getElementById("priorActivityText");
+  textEl.disabled = !checked;
+  if(checked){
+    if(!current.meta.priorActivity) current.meta.priorActivity = "Ano";
+    textEl.value = current.meta.priorActivity==="Ano" ? "" : current.meta.priorActivity;
+    textEl.focus();
+  } else {
+    current.meta.priorActivity = "";
+    textEl.value = "";
+  }
+  updateDots(); scheduleAutosave();
+}
+function onPriorActivityText(val){
+  current.meta.priorActivity = val.trim() ? val : "Ano";
+  scheduleAutosave();
+}
+function updateRirHint(val){
+  const el = document.getElementById("rirHint");
+  if(!el) return;
+  const n = parseFloat(val);
+  if(!n || n<1 || n>10){ el.textContent = ""; return; }
+  const rir = 10-n;
+  el.textContent = rir<=0 ? "· selhání (0 RIR)" : `· ~${rir} opak. v rezervě`;
+}
+function updatePriorActivityUI(){
+  const check = document.getElementById("priorActivityCheck");
+  const text = document.getElementById("priorActivityText");
+  if(!check) return;
+  const has = !!current.meta.priorActivity;
+  check.checked = has;
+  text.disabled = !has;
+  text.value = has && current.meta.priorActivity!=="Ano" ? current.meta.priorActivity : "";
+}
+function buildSuuntoGrid(){
+  document.getElementById("suuntoGrid").innerHTML = SUUNTO_FIELDS.map(f=>`
+    <div class="field ${f.span2?'span2':''}"><label>${f.label}</label>
+      <input type="${f.type}" placeholder="${f.placeholder||''}"
+        data-group="suunto" data-key="${f.k}" oninput="onMetaInput('suunto','${f.k}',this.value)"></div>`).join("");
+}
+function onMetaInput(group,key,val){
+  current[group][key] = val;
+  updateDial(); updateDots();
+  if(group==="meta" && key==="weight"){ updateSummaryDynamic(); renderSportSections(); }
+}
+
+/* ============================================================
+   RENDER: cvičební sekce (dynamicky z CONFIG)
+   ============================================================ */
+function renderExerciseSections(){
+  const wrap = document.getElementById("exerciseSections");
+  wrap.innerHTML = CONFIG.groups.map(g=>{
+    const subtitle = g.exercises.slice(0,3).map(e=>e.label).join(", ") + (g.exercises.length>3 ? "…" : "");
+    return `<div class="section" data-key="grp_${g.id}">
+      <div class="section-head" onclick="toggleSection(this)">
+        <div class="section-head-left"><span class="section-dot" id="dot-grp_${g.id}"></span>
+          <div><div class="section-title">${g.icon||''} ${g.title}</div><div class="section-sub">${subtitle||'Zatím bez cviků'}</div></div></div>
+        <span class="chev">▾</span>
+      </div>
+      <div class="section-body"><div class="section-body-inner" id="body_${g.id}"></div></div>
+    </div>`;
+  }).join("");
+
+  CONFIG.groups.forEach(g=>{
+    const body = document.getElementById("body_"+g.id);
+    g.exercises.forEach(ex=>{
+      if(ex.type==="ladder") (ex.weights||[]).forEach(w=> buildLadderRow(body, ex, w));
+      else buildSingleRow(body, ex);
+    });
+    if(g.exercises.length===0) body.innerHTML = `<div class="section-note">Tahle skupina zatím nemá žádné cviky. Přidej je v záložce "Cviky".</div>`;
+  });
+}
+function ladderRowLabel(ex, weight){
+  return (ex.weights && ex.weights.length > 1) ? `${ex.label} ${weight}kg` : ex.label;
+}
+function formatTimeHM(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2,'0')+":"+String(d.getMinutes()).padStart(2,'0');
+}
+/* ---- Log jednotlivých sérií s časovým razítkem ----
+   current.setLogs[key] = [{v:"8", ts:"2026-...isostring"}, ...]
+   key = pinKey(exId, weight) -- stejné klíčování jako u oblíbených.
+   current.data[...] zůstává odvozený souhrnný string "8,6,5" pro zpětnou
+   kompatibilitu se všemi výpočty (objem, PR, svaly, grafy, export). */
+function ensureSetLogs(rec){ if(!rec.setLogs) rec.setLogs = {}; }
+function getSetLogs(rec, key){ ensureSetLogs(rec); if(!rec.setLogs[key]) rec.setLogs[key] = []; return rec.setLogs[key]; }
+function syncAggregateFromSetLogs(exId, weight){
+  const key = pinKey(exId, weight);
+  const str = getSetLogs(current, key).map(s=>s.v).join(",");
+  if(weight!==undefined && weight!==null && weight!==""){
+    if(!current.data[exId]) current.data[exId] = {};
+    current.data[exId][weight] = str;
+  } else {
+    current.data[exId] = str;
+  }
+}
+function backfillSetLogsFromData(rec){
+  ensureSetLogs(rec);
+  const fill = (key, str)=>{
+    if((!rec.setLogs[key] || rec.setLogs[key].length===0) && str){
+      rec.setLogs[key] = str.split(",").map(s=>s.trim()).filter(Boolean).map(v=>({v, ts:null}));
+    }
+  };
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
+    if(ex.type==="ladder") (ex.weights||[]).forEach(w=> fill(pinKey(ex.id,w), rec.data[ex.id] && rec.data[ex.id][w]));
+    else fill(pinKey(ex.id), rec.data[ex.id]);
+  }));
+}
+function updateExTimeBadgeForKey(key){
+  const logs = getSetLogs(current, key);
+  const last = logs.length ? logs[logs.length-1] : null;
+  document.querySelectorAll(`.ex-time[data-key="${key}"]`).forEach(el=> el.textContent = (last && last.ts) ? "🕒"+formatTimeHM(last.ts) : "");
+}
+function renderSetChips(exId, weight){
+  const key = pinKey(exId, weight);
+  const logs = getSetLogs(current, key);
+  document.querySelectorAll(`.set-chips[data-key="${key}"]`).forEach(host=>{
+    host.innerHTML = logs.length ? logs.map(s=>`<span class="set-chip">${s.v}</span>`).join("") : `<span class="set-chips-empty">–</span>`;
+  });
+}
+function commitSet(exId, weight, rawValue){
+  const v = (rawValue||"").trim();
+  if(!v) return;
+  const n = parseFloat(v.replace(",", "."));
+  if(isNaN(n)) return;
+  const key = pinKey(exId, weight);
+  getSetLogs(current, key).push({ v:String(n), ts:new Date().toISOString() });
+  syncAggregateFromSetLogs(exId, weight);
+  renderSetChips(exId, weight);
+  updateExTimeBadgeForKey(key);
+  updateSummaryDynamic(); updateDots();
+  scheduleAutosave();
+}
+function attachSetInput(input, exId, weight){
+  let timer = null;
+  const tryCommit = ()=>{
+    clearTimeout(timer);
+    if(input.value.trim()){ commitSet(exId, weight, input.value); input.value = ""; }
+  };
+  input.addEventListener("input", ()=>{ clearTimeout(timer); timer = setTimeout(tryCommit, 2500); });
+  input.addEventListener("blur", tryCommit);
+  input.addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); tryCommit(); input.blur(); } });
+}
+function toggleSetEditPanel(key, exId, weight){
+  document.querySelectorAll(`.set-edit-panel[data-key="${key}"]`).forEach(panel=>{
+    const show = panel.style.display === "none";
+    panel.style.display = show ? "" : "none";
+    if(show) renderSetEditPanel(panel, key, exId, weight);
+  });
+}
+function renderSetEditPanel(panel, key, exId, weight){
+  const logs = getSetLogs(current, key);
+  if(logs.length===0){ panel.innerHTML = `<div class="section-note" style="margin:0">Zatím žádné uložené série.</div>`; return; }
+  panel.innerHTML = logs.map((s,i)=>`
+    <div class="set-edit-row">
+      <span class="set-edit-idx">${i+1}.</span>
+      <input type="text" inputmode="decimal" value="${s.v}" data-i="${i}">
+      <span class="set-edit-time">${s.ts ? formatTimeHM(s.ts) : '–'}</span>
+      <button type="button" class="set-edit-del" data-i="${i}">🗑</button>
+    </div>`).join("");
+  panel.querySelectorAll("input").forEach(inp=>{
+    inp.addEventListener("change", ()=>{
+      const i = parseInt(inp.dataset.i);
+      const n = parseFloat(inp.value.replace(",", "."));
+      if(!isNaN(n)){ logs[i].v = String(n); syncAggregateFromSetLogs(exId, weight); renderSetChips(exId, weight); updateSummaryDynamic(); updateDots(); scheduleAutosave(); }
+    });
+  });
+  panel.querySelectorAll(".set-edit-del").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      logs.splice(parseInt(btn.dataset.i),1);
+      syncAggregateFromSetLogs(exId, weight);
+      renderSetChips(exId, weight);
+      updateExTimeBadgeForKey(key);
+      renderSetEditPanel(panel, key, exId, weight);
+      updateSummaryDynamic(); updateDots(); scheduleAutosave();
+    });
+  });
+}
+function buildLadderRow(container, ex, weight){
+  const row = document.createElement("div"); row.className = "row set-row";
+  const pinned = isPinned(ex.id, weight);
+  const key = pinKey(ex.id, weight);
+  row.innerHTML = `<button type="button" class="pin-star ${pinned?'active':''}" data-ex="${ex.id}" data-weight="${weight}" title="Připnout nahoru">${pinned?'⭐':'☆'}</button>
+    <span class="row-label">${ladderRowLabel(ex, weight)}</span>
+    <input class="set-input" type="text" inputmode="decimal" placeholder="+" data-ex="${ex.id}" data-weight="${weight}">
+    <span class="ex-time" data-key="${key}"></span>
+    <button type="button" class="set-edit-btn" data-key="${key}" title="Upravit série">✏️</button>
+    <span class="set-chips" data-key="${key}"></span>
+    <div class="set-edit-panel" data-key="${key}" style="display:none"></div>`;
+  attachSetInput(row.querySelector(".set-input"), ex.id, weight);
+  row.querySelector(".pin-star").addEventListener("click", ()=> togglePin(ex.id, weight));
+  row.querySelector(".set-edit-btn").addEventListener("click", ()=> toggleSetEditPanel(key, ex.id, weight));
+  container.appendChild(row);
+  renderSetChips(ex.id, weight);
+  updateExTimeBadgeForKey(key);
+}
+function buildSingleRow(container, ex){
+  const row = document.createElement("div"); row.className = "row set-row";
+  const pinned = isPinned(ex.id);
+  const key = pinKey(ex.id);
+  const tag = ex.type==="bodyweight" ? `<span class="tag">×${ex.coef ?? 1}kg</span>` : "";
+  row.innerHTML = `<button type="button" class="pin-star ${pinned?'active':''}" data-ex="${ex.id}" data-weight="" title="Připnout nahoru">${pinned?'⭐':'☆'}</button>
+    <span class="row-label">${ex.label}${tag}</span>
+    <input class="set-input" type="text" inputmode="decimal" placeholder="+" data-ex="${ex.id}" data-weight="">
+    <span class="ex-time" data-key="${key}"></span>
+    <button type="button" class="set-edit-btn" data-key="${key}" title="Upravit série">✏️</button>
+    <span class="set-chips" data-key="${key}"></span>
+    <div class="set-edit-panel" data-key="${key}" style="display:none"></div>`;
+  attachSetInput(row.querySelector(".set-input"), ex.id, undefined);
+  row.querySelector(".pin-star").addEventListener("click", ()=> togglePin(ex.id));
+  row.querySelector(".set-edit-btn").addEventListener("click", ()=> toggleSetEditPanel(key, ex.id, undefined));
+  container.appendChild(row);
+  renderSetChips(ex.id, undefined);
+  updateExTimeBadgeForKey(key);
+}
+
+/* ============================================================
+   RENDER: sportovní sekce (dynamicky ze SPORTS)
+   ============================================================ */
+function renderSportSections(){
+  const wrap = document.getElementById("sportSections");
+  wrap.innerHTML = SPORTS.sports.map(sp=>`
+    <div class="section" data-key="spt_${sp.id}">
+      <div class="section-head" onclick="toggleSection(this)">
+        <div class="section-head-left"><span class="section-dot" id="dot-spt_${sp.id}"></span>
+          <div><div class="section-title">${sp.icon||''} ${sp.title}</div><div class="section-sub">${sp.fields.length} sledovaných hodnot</div></div></div>
+        <span class="chev">▾</span>
+      </div>
+      <div class="section-body"><div class="section-body-inner">
+        <div class="meta-grid" id="sportBody_${sp.id}"></div>
+        <div class="field span2" style="margin-top:10px">
+          <button type="button" class="btn-mini" onclick="document.getElementById('sportScanInput_${sp.id}').click()">🖼️ Vybrat screenshot z galerie</button>
+          <input type="file" id="sportScanInput_${sp.id}" accept="image/*" style="display:none" onchange="scanSuuntoImage(this,'${sp.id}')">
+        </div>
+      </div></div>
+    </div>`).join("");
+
+  SPORTS.sports.forEach(sp=>{
+    const body = document.getElementById("sportBody_"+sp.id);
+    ensureSportData(current, sp);
+    if(sp.fields.includes("weightBefore") && !current.sports[sp.id].weightBefore && current.meta.weight){
+      current.sports[sp.id].weightBefore = current.meta.weight;
+    }
+    const defs = SPORT_FIELD_DEFS.filter(f=> sp.fields.includes(f.k));
+    body.innerHTML = defs.map(f=>`
+      <div class="field"><label>${f.label}</label>
+        <input type="${f.type}" data-sport="${sp.id}" data-field="${f.k}" value="${current.sports[sp.id][f.k]||''}"></div>`).join("");
+    body.querySelectorAll("input").forEach(inp=>{
+      inp.addEventListener("input", ()=>{
+        current.sports[sp.id][inp.dataset.field] = inp.value;
+        updateDots(); renderSportDerived(sp, body);
+      });
+    });
+    const derivedHost = document.createElement("div");
+    derivedHost.id = "derived_"+sp.id;
+    body.parentElement.appendChild(derivedHost);
+    renderSportDerived(sp, body);
+  });
+}
+function formatPace(minPerKm){
+  if(!isFinite(minPerKm) || minPerKm<=0) return "–";
+  const m = Math.floor(minPerKm), s = Math.round((minPerKm-m)*60);
+  return m+":"+String(s).padStart(2,'0');
+}
+function renderSportDerived(sp, body){
+  const host = document.getElementById("derived_"+sp.id);
+  if(!host) return;
+  const d = current.sports[sp.id] || {};
+  const duration = parseDurationToMinutes(d.duration, sp.fields.includes("km")), km = parseFloat(d.km)||0, elevation = parseFloat(d.elevation)||0, cadence = parseFloat(d.steps)||0;
+  const bodyWeight = parseFloat(current.meta.weight)||0;
+  let rows = [];
+  if(km>0 && elevation>0 && duration>0){
+    const adjustedKm = km + elevation/100;
+    rows.push({l:"Tempo na rovině (odhad)", v: formatPace(duration/adjustedKm)+" /km"});
+  }
+  if(elevation>0 && bodyWeight>0){
+    rows.push({l:"Odhad práce do kopce", v: Math.round(bodyWeight*elevation)+" kgm"});
+  }
+  if(cadence>0 && duration>0){
+    rows.push({l:"Odhad počtu kroků", v: Math.round(cadence*duration).toLocaleString("cs-CZ")});
+  }
+  const wBefore = parseFloat(d.weightBefore)||0, wAfter = parseFloat(d.weightAfter)||0;
+  if(wBefore>0 && wAfter>0){
+    const lossKg = wBefore-wAfter;
+    const label = lossKg>=0 ? "Úbytek tekutin (odhad)" : "Přírůstek váhy";
+    rows.push({l:label, v: Math.round(Math.abs(lossKg)*1000).toLocaleString("cs-CZ")+" g"});
+  }
+  host.innerHTML = rows.map(r=>`<div class="derived-row"><span class="l">${r.l}</span><span class="v">${r.v}</span></div>`).join("");
+}
+
+function fillFormFromCurrent(){
+  META_FIELDS.forEach(f=>{ const el=document.querySelector(`input[data-group="meta"][data-key="${f.k}"]`); if(el) el.value = current.meta[f.k]||""; });
+  SUUNTO_FIELDS.forEach(f=>{ const el=document.querySelector(`input[data-group="suunto"][data-key="${f.k}"]`); if(el) el.value = current.suunto[f.k]||""; });
+  updatePartToggleUI();
+  updatePriorActivityUI();
+  updateRirHint(current.meta.rpe);
+  renderExerciseSections();
+  renderSportSections();
+  renderPinnedSection();
+  document.getElementById("recordManual").checked = !!current.recordManual;
+  updateDial(); updateSummaryDynamic(); updateDots();
+  document.getElementById("prBanner").style.display = "none";
+}
+
+/* ============================================================
+   CALC
+   ============================================================ */
+function sumReps(str){
+  if(!str) return 0;
+  return str.split(",").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)).reduce((a,b)=>a+b,0);
+}
+function countSets(str){
+  if(!str) return 0;
+  return str.split(",").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)).length;
+}
+function ladderKg(exData, weights){ let t=0; (weights||[]).forEach(w=>{ t += w * sumReps(exData && exData[w]); }); return t; }
+function ladderBodyweightKg(exData, weights, bodyWeight){ let t=0; (weights||[]).forEach(w=>{ t += bodyWeight * sumReps(exData && exData[w]); }); return t; }
+function ladderMaxWeight(exData, weights){ let max=0; (weights||[]).forEach(w=>{ if(exData && sumReps(exData[w])>0 && w>max) max=w; }); return max; }
+
+function groupTotals(g, rec){
+  let kgFree=0, kgBody=0, reps=0, sets=0;
+  const bodyWeight = parseFloat(rec.meta.weight)||0;
+  g.exercises.forEach(ex=>{
+    if(ex.type==="ladder"){
+      kgFree += ladderKg(rec.data[ex.id], ex.weights);
+      if(ex.addBodyweight) kgBody += ladderBodyweightKg(rec.data[ex.id], ex.weights, bodyWeight);
+      (ex.weights||[]).forEach(w=> sets += countSets(rec.data[ex.id] && rec.data[ex.id][w]));
+    }
+    else if(ex.type==="bodyweight"){ kgBody += bodyWeight * (ex.coef ?? 1) * sumReps(rec.data[ex.id]); sets += countSets(rec.data[ex.id]); }
+    else { reps += sumReps(rec.data[ex.id]); sets += countSets(rec.data[ex.id]); }
+  });
+  return { kgFree:Math.round(kgFree), kgBody:Math.round(kgBody), kgTotal:Math.round(kgFree+kgBody), reps:Math.round(reps), sets };
+}
+function historicalMaxForExercise(exId, weights, excludeId){
+  let max=0;
+  records.forEach(r=>{ if(r.id===excludeId) return; const m = ladderMaxWeight(r.data ? r.data[exId] : null, weights); if(m>max) max=m; });
+  return max;
+}
+
+function updateSummaryDynamic(){
+  const grid = document.getElementById("summaryGrid");
+  let grandFree=0, grandBody=0, grandSets=0;
+  grid.innerHTML = CONFIG.groups.map(g=>{
+    const t = groupTotals(g, current);
+    grandFree += t.kgFree; grandBody += t.kgBody; grandSets += t.sets;
+    const hasLadder = g.exercises.some(e=>e.type==="ladder");
+    const hasBody = g.exercises.some(e=>e.type==="bodyweight");
+    const hasSingle = g.exercises.some(e=>e.type==="single");
+    let lines = "";
+    if(hasLadder) lines += `<div class="s-line"><span>Váhy činky</span><b>${t.kgFree} kg</b></div>`;
+    if(hasBody) lines += `<div class="s-line"><span>Vlastní váha</span><b>${t.kgBody} kg</b></div>`;
+    if(hasLadder && hasBody) lines += `<div class="s-line total"><span>Celkem</span><b>${t.kgTotal} kg</b></div>`;
+    if(hasSingle) lines += `<div class="s-line"><span>Opakování</span><b>${t.reps}</b></div>`;
+    if(t.sets>0) lines += `<div class="s-line"><span>Sérií</span><b>${t.sets}</b></div>`;
+    if(!lines) lines = `<div class="s-line"><span>–</span><b>–</b></div>`;
+    return `<div class="summary-card"><div class="g-title">${g.icon||''} ${g.title}</div>${lines}</div>`;
+  }).join("");
+
+  const grandTotal = grandFree + grandBody;
+  document.getElementById("grandTotal").textContent = grandTotal + " kg";
+  document.getElementById("grandTotalSub").textContent = `váhy činky ${grandFree}kg + vlastní váha ${grandBody}kg · ${grandSets} sérií celkem`;
+
+  let prMsgs = [];
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
+    if(ex.type!=="ladder") return;
+    const curMax = ladderMaxWeight(current.data[ex.id], ex.weights);
+    const histMax = historicalMaxForExercise(ex.id, ex.weights, current.id);
+    if(curMax>0 && curMax>histMax) prMsgs.push(`${ex.label}: nové maximum ${curMax}kg!`);
+  }));
+  const banner = document.getElementById("prBanner");
+  if(prMsgs.length){ banner.style.display="flex"; document.getElementById("prText").textContent = prMsgs.join(" · "); }
+  else banner.style.display="none";
+}
+
+function updateDial(){
+  document.getElementById("dialNum").textContent = current.meta.trainNum || "–";
+  document.getElementById("dialDur").innerHTML = (current.meta.duration||"–") + "<small>min</small>";
+  document.getElementById("dialTss").textContent = current.suunto.tss || "–";
+}
+function sectionHasData(key){
+  if(key==="meta") return META_FIELDS.some(f=>f.k!=="trainNum" && f.k!=="date" && current.meta[f.k]);
+  if(key==="suunto") return SUUNTO_FIELDS.some(f=>current.suunto[f.k]);
+  if(key.startsWith("grp_")){
+    const g = CONFIG.groups.find(x=>x.id===key.slice(4)); if(!g) return false;
+    return g.exercises.some(ex=> ex.type==="ladder" ? Object.values(current.data[ex.id]||{}).some(v=>v) : !!current.data[ex.id]);
+  }
+  if(key.startsWith("spt_")){
+    const sp = SPORTS.sports.find(x=>x.id===key.slice(4)); if(!sp) return false;
+    const d = current.sports[sp.id]||{};
+    return sp.fields.some(f=>d[f]);
+  }
+  return false;
+}
+function updateDots(){
+  const keys = ["meta","suunto", ...CONFIG.groups.map(g=>"grp_"+g.id), ...SPORTS.sports.map(s=>"spt_"+s.id)];
+  keys.forEach(key=>{ const dot=document.getElementById("dot-"+key); if(dot) dot.classList.toggle("filled", sectionHasData(key)); });
+}
+
+/* ============================================================
+   SECTION TOGGLE
+   ============================================================ */
+function toggleSection(headEl){
+  const section = headEl.parentElement, body = section.querySelector(".section-body");
+  const willOpen = !section.classList.contains("open");
+  section.classList.toggle("open", willOpen);
+  body.style.maxHeight = willOpen ? body.scrollHeight + "px" : null;
+}
+function refreshOpenHeights(){
+  document.querySelectorAll(".section.open .section-body").forEach(b=>{ b.style.maxHeight = b.scrollHeight + "px"; });
+}
+
+/* ============================================================
+   SAVE / NEW / DELETE
+   ============================================================ */
+function commitAllPendingSetInputs(){
+  document.querySelectorAll(".set-input").forEach(inp=>{
+    if(inp.value && inp.value.trim()){
+      const weight = inp.dataset.weight === "" ? undefined : inp.dataset.weight;
+      commitSet(inp.dataset.ex, weight, inp.value);
+      inp.value = "";
+    }
+  });
+}
+function saveRecord(silent){
+  commitAllPendingSetInputs();
+  current.recordManual = document.getElementById("recordManual").checked;
+  const idx = records.findIndex(r=>r.id===current.id);
+  if(idx>=0) records[idx] = JSON.parse(JSON.stringify(current));
+  else records.push(JSON.parse(JSON.stringify(current)));
+  records.sort((a,b)=> (parseInt(a.meta.trainNum)||0) - (parseInt(b.meta.trainNum)||0));
+  persistRecords();
+  if(silent) flashAutosaveIndicator(); else showToast("Záznam uložen ✓");
+  updateSummaryDynamic();
+}
+let autosaveTimer = null;
+function scheduleAutosave(){
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(()=> saveRecord(true), 2500);
+}
+function flashAutosaveIndicator(){
+  const ind = document.getElementById("autosaveIndicator");
+  if(!ind) return;
+  ind.style.opacity = "1";
+  clearTimeout(flashAutosaveIndicator._t);
+  flashAutosaveIndicator._t = setTimeout(()=>{ ind.style.opacity = "0"; }, 1400);
+}
+function newRecord(){ current = blankRecord(); fillFormFromCurrent(); initStopwatchForCurrent(); refreshOpenHeights(); showToast("Nový záznam připraven"); }
+function deleteCurrent(){
+  if(!confirm("Opravdu smazat tento záznam?")) return;
+  delete swAll[String(current.id)]; persistStopwatchAll();
+  records = records.filter(r=>r.id!==current.id); persistRecords(); newRecord(); showToast("Záznam smazán");
+}
+function loadRecord(id){
+  const r = records.find(r=>r.id===id); if(!r) return;
+  current = JSON.parse(JSON.stringify(r));
+  ensureSetLogs(current);
+  backfillSetLogsFromData(current);
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=> ensureExerciseData(current, ex)));
+  SPORTS.sports.forEach(sp=> ensureSportData(current, sp));
+  switchTab("form"); fillFormFromCurrent(); initStopwatchForCurrent(); refreshOpenHeights();
+}
+function showToast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1800); }
+
+/* ============================================================
+   TABS
+   ============================================================ */
+function switchTab(tab){
+  document.getElementById("formView").style.display = tab==="form" ? "" : "none";
+  document.getElementById("histView").style.display = tab==="hist" ? "" : "none";
+  document.getElementById("cfgView").style.display  = tab==="cfg"  ? "" : "none";
+  document.getElementById("sportView").style.display = tab==="sport" ? "" : "none";
+  document.getElementById("muscleView").style.display = tab==="muscle" ? "" : "none";
+  document.getElementById("perfView").style.display = tab==="perf" ? "" : "none";
+  document.getElementById("chartView").style.display = tab==="chart" ? "" : "none";
+  document.getElementById("profileView").style.display = tab==="profile" ? "" : "none";
+  document.getElementById("helpView").style.display = tab==="help" ? "" : "none";
+  document.getElementById("tabFormBtn").classList.toggle("active", tab==="form");
+  document.getElementById("tabHistBtn").classList.toggle("active", tab==="hist");
+  document.getElementById("tabCfgBtn").classList.toggle("active", tab==="cfg");
+  document.getElementById("tabSportBtn").classList.toggle("active", tab==="sport");
+  document.getElementById("tabMuscleBtn").classList.toggle("active", tab==="muscle");
+  document.getElementById("tabPerfBtn").classList.toggle("active", tab==="perf");
+  document.getElementById("tabChartBtn").classList.toggle("active", tab==="chart");
+  document.getElementById("tabProfileBtn").classList.toggle("active", tab==="profile");
+  document.getElementById("tabHelpBtn").classList.toggle("active", tab==="help");
+  if(tab==="hist") renderHistory();
+  if(tab==="cfg") renderConfigEditor();
+  if(tab==="sport") renderSportEditor();
+  if(tab==="muscle") renderMuscleView();
+  if(tab==="perf") renderPerfView();
+  if(tab==="chart") renderChartView();
+  if(tab==="profile") renderProfileView();
+}
+document.getElementById("tabFormBtn").onclick = ()=>switchTab("form");
+document.getElementById("tabHistBtn").onclick = ()=>switchTab("hist");
+document.getElementById("tabCfgBtn").onclick  = ()=>switchTab("cfg");
+document.getElementById("tabSportBtn").onclick = ()=>switchTab("sport");
+document.getElementById("tabProfileBtn").onclick = ()=>switchTab("profile");
+document.getElementById("tabMuscleBtn").onclick = ()=>switchTab("muscle");
+document.getElementById("tabPerfBtn").onclick = ()=>switchTab("perf");
+document.getElementById("tabChartBtn").onclick = ()=>switchTab("chart");
+document.getElementById("tabHelpBtn").onclick = ()=>switchTab("help");
+let chartMode = "strength";
+function setChartMode(mode){
+  chartMode = mode;
+  ["chartStrengthBtn","chartRunBtn","chartBodyBtn"].forEach(id=> document.getElementById(id).classList.remove("active"));
+  document.getElementById(mode==="strength"?"chartStrengthBtn":mode==="run"?"chartRunBtn":"chartBodyBtn").classList.add("active");
+  renderChartView();
+}
+document.getElementById("chartStrengthBtn").onclick = ()=> setChartMode("strength");
+document.getElementById("chartRunBtn").onclick = ()=> setChartMode("run");
+document.getElementById("chartBodyBtn").onclick = ()=> setChartMode("body");
+let perfMode = "week";
+document.getElementById("perfWeekBtn").onclick = ()=>{ perfMode="week"; document.getElementById("perfWeekBtn").classList.add("active"); document.getElementById("perfMonthBtn").classList.remove("active"); renderPerfView(); };
+document.getElementById("perfMonthBtn").onclick = ()=>{ perfMode="month"; document.getElementById("perfMonthBtn").classList.add("active"); document.getElementById("perfWeekBtn").classList.remove("active"); renderPerfView(); };
+document.getElementById("muscleTodayBtn").onclick = ()=>{ setMuscleMode("today"); };
+document.getElementById("muscleWeekBtn").onclick = ()=>{ setMuscleMode("week"); };
+document.getElementById("muscleNeglectBtn").onclick = ()=>{ setMuscleMode("neglect"); };
+function setMuscleMode(mode){
+  muscleMode = mode;
+  ["muscleTodayBtn","muscleWeekBtn","muscleNeglectBtn"].forEach(id=> document.getElementById(id).classList.remove("active"));
+  document.getElementById(mode==="today"?"muscleTodayBtn":mode==="week"?"muscleWeekBtn":"muscleNeglectBtn").classList.add("active");
+  renderMuscleView();
+}
+
+function renderHistory(){
+  const list = document.getElementById("histList"), empty = document.getElementById("histEmpty");
+  const sorted = [...records].sort((a,b)=> (parseInt(b.meta.trainNum)||0) - (parseInt(a.meta.trainNum)||0));
+  if(sorted.length===0){ list.innerHTML=""; empty.style.display="block"; return; }
+  empty.style.display="none";
+  list.innerHTML = sorted.map(r=>{
+    let kg=0;
+    CONFIG.groups.forEach(g=>{ const t=groupTotals(g,r); kg+=t.kgTotal; });
+    const isPr = r.recordManual;
+    return `<div class="hist-card" onclick="loadRecord(${r.id})">
+      <div class="hist-left"><div class="num">${isPr?'🏆 ':''}#${r.meta.trainNum||'–'}</div><div class="date">${formatDateDisplay(r.meta.date)||'bez data'}${r.meta.part?' · '+r.meta.part:''}${r.meta.priorActivity?' · 🔗':''}</div></div>
+      <div class="hist-mid"><div class="m"><div class="v">${kg||0}</div><div class="l">kg</div></div><div class="m"><div class="v">${r.meta.duration||'–'}</div><div class="l">min</div></div></div>
+      <button class="hist-del" onclick="event.stopPropagation(); quickDelete(${r.id})">✕</button>
+    </div>`;
+  }).join("");
+}
+function quickDelete(id){ if(!confirm("Smazat tento záznam z historie?")) return; records = records.filter(r=>r.id!==id); persistRecords(); renderHistory(); }
+
+/* ============================================================
+   CVIKY / CONFIG EDITOR
+   ============================================================ */
+function renderConfigEditor(){
+  const wrap = document.getElementById("cfgGroups");
+  wrap.innerHTML = CONFIG.groups.map((g, gi)=>{
+    const exRows = g.exercises.map((ex, ei)=>{
+      const weightsField = ex.type==="ladder"
+        ? `<input class="cfg-ex-weights" value="${(ex.weights||[]).join(',')}" onchange="updateExerciseWeights('${g.id}','${ex.id}', this.value)" placeholder="váhy kg">` : "";
+      const coefField = ex.type==="bodyweight"
+        ? `<input class="cfg-ex-coef" type="number" step="0.05" value="${ex.coef ?? 1}" onchange="updateExerciseCoef('${g.id}','${ex.id}', this.value)" placeholder="koef.">` : "";
+      const addBwField = ex.type==="ladder"
+        ? `<label class="cfg-check-pill ${ex.addBodyweight?'active':''}" style="font-size:0.65rem"><input type="checkbox" ${ex.addBodyweight?'checked':''} onchange="updateExerciseAddBw('${g.id}','${ex.id}', this.checked)"> +vlastní váha</label>` : "";
+      const badgeLabel = ex.type==='ladder'?'žebřík':(ex.type==='bodyweight'?'vlastní váha':'cvik');
+      const muscleOpts = `<option value="">– sval –</option>` + MUSCLE_DEFS.map(m=>`<option value="${m.k}" ${ex.muscle===m.k?'selected':''}>${m.label}</option>`).join("");
+      return `<div class="cfg-ex-row">
+        <span class="cfg-badge ${ex.type}">${badgeLabel}</span>
+        <input class="cfg-ex-label" value="${escAttr(ex.label)}" onchange="renameExercise('${g.id}','${ex.id}', this.value)">
+        ${weightsField}${coefField}${addBwField}
+        <select class="cfg-ex-coef" style="width:96px" onchange="updateExerciseMuscle('${g.id}','${ex.id}', this.value)">${muscleOpts}</select>
+        <button class="cfg-move" onclick="moveExercise('${g.id}','${ex.id}',-1)" ${ei===0?'style="visibility:hidden"':''}>▲</button>
+        <button class="cfg-move" onclick="moveExercise('${g.id}','${ex.id}',1)" ${ei===g.exercises.length-1?'style="visibility:hidden"':''}>▼</button>
+        <button class="cfg-ex-dup" onclick="duplicateExercise('${g.id}','${ex.id}')" title="Duplikovat">⎘</button>
+        <button class="cfg-ex-del" onclick="deleteExercise('${g.id}','${ex.id}')">🗑</button>
+      </div>`;
+    }).join("");
+    return `<div class="cfg-group">
+      <div class="cfg-group-head">
+        <input class="cfg-icon-input" value="${escAttr(g.icon||'')}" maxlength="4" onchange="updateGroupIcon('${g.id}', this.value)">
+        <input class="cfg-title-input" value="${escAttr(g.title)}" onchange="renameGroup('${g.id}', this.value)">
+        <button class="cfg-move" onclick="moveGroup('${g.id}',-1)" ${gi===0?'style="visibility:hidden"':''}>▲</button>
+        <button class="cfg-move" onclick="moveGroup('${g.id}',1)" ${gi===CONFIG.groups.length-1?'style="visibility:hidden"':''}>▼</button>
+        <button class="cfg-del-group" onclick="deleteGroup('${g.id}')">🗑</button>
+      </div>
+      ${exRows || '<div class="section-note">Žádné cviky — přidej první níže.</div>'}
+      <div class="cfg-add-ex">
+        <div class="cfg-add-row">
+          <select id="newType_${g.id}" onchange="toggleAddExFields('${g.id}')">
+            <option value="single">Jednotlivý cvik</option>
+            <option value="ladder">Váhový žebříček</option>
+            <option value="bodyweight">Cvik s vlastní vahou</option>
+          </select>
+          <input class="cfg-new-label" id="newLabel_${g.id}" placeholder="Název cviku">
+        </div>
+        <div class="cfg-add-row" id="weightsRow_${g.id}" style="display:none">
+          <input class="cfg-new-weights" id="newWeights_${g.id}" placeholder="40,45,50,55">
+          <label class="cfg-check-pill" style="font-size:0.68rem"><input type="checkbox" id="newAddBw_${g.id}"> +vlastní váha (dřepy, výpady…)</label>
+        </div>
+        <div class="cfg-add-row" id="coefRow_${g.id}" style="display:none"><input class="cfg-new-coef" id="newCoef_${g.id}" type="number" step="0.05" value="1" placeholder="koeficient (0-1)"></div>
+        <div class="cfg-add-row"><select id="newMuscle_${g.id}">${`<option value="">– sval (nepovinné) –</option>` + MUSCLE_DEFS.map(m=>`<option value="${m.k}">${m.label}</option>`).join("")}</select></div>
+        <button class="cfg-add-btn" onclick="addExercise('${g.id}')">＋ Přidat cvik</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+function escAttr(s){ return (s||"").replace(/"/g,"&quot;"); }
+function toggleAddExFields(gid){
+  const type = document.getElementById("newType_"+gid).value;
+  document.getElementById("weightsRow_"+gid).style.display = type==="ladder" ? "flex" : "none";
+  document.getElementById("coefRow_"+gid).style.display = type==="bodyweight" ? "flex" : "none";
+}
+function addGroup(){
+  const icon = document.getElementById("newGroupIcon").value.trim() || "🏋️";
+  const title = document.getElementById("newGroupTitle").value.trim();
+  if(!title){ showToast("Zadej název skupiny"); return; }
+  CONFIG.groups.push({ id: uid("g"), icon, title, exercises: [] });
+  persistConfig(); document.getElementById("newGroupTitle").value = "";
+  syncCurrentWithConfig(); renderConfigEditor(); showToast("Skupina přidána");
+}
+function deleteGroup(gid){
+  const g = CONFIG.groups.find(x=>x.id===gid);
+  if(!confirm(`Rozpustit skupinu "${g?g.title:''}" a všechny její cviky?`)) return;
+  CONFIG.groups = CONFIG.groups.filter(x=>x.id!==gid);
+  persistConfig(); renderConfigEditor(); showToast("Skupina zrušena");
+}
+function renameGroup(gid, val){ const g=CONFIG.groups.find(x=>x.id===gid); if(!g) return; g.title = val.trim()||g.title; persistConfig(); }
+function updateGroupIcon(gid, val){ const g=CONFIG.groups.find(x=>x.id===gid); if(!g) return; g.icon = val; persistConfig(); }
+function moveGroup(gid, dir){
+  const i = CONFIG.groups.findIndex(x=>x.id===gid), j=i+dir;
+  if(j<0||j>=CONFIG.groups.length) return;
+  [CONFIG.groups[i], CONFIG.groups[j]] = [CONFIG.groups[j], CONFIG.groups[i]];
+  persistConfig(); renderConfigEditor();
+}
+function addExercise(gid){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const type = document.getElementById("newType_"+gid).value;
+  const label = document.getElementById("newLabel_"+gid).value.trim();
+  if(!label){ showToast("Zadej název cviku"); return; }
+  const ex = { id: uid("e"), label, type };
+  if(type==="ladder"){
+    const raw = document.getElementById("newWeights_"+gid).value;
+    const weights = raw.split(",").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+    if(weights.length===0){ showToast("Zadej váhy oddělené čárkou"); return; }
+    ex.weights = weights;
+    ex.addBodyweight = document.getElementById("newAddBw_"+gid).checked;
+  }
+  if(type==="bodyweight"){ ex.coef = parseFloat(document.getElementById("newCoef_"+gid).value)||1; }
+  ex.muscle = document.getElementById("newMuscle_"+gid).value || "";
+  g.exercises.push(ex);
+  persistConfig(); syncCurrentWithConfig(); renderConfigEditor(); showToast("Cvik přidán");
+}
+function updateExerciseMuscle(gid, exid, val){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex) return;
+  ex.muscle = val; persistConfig();
+}
+function deleteExercise(gid, exid){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  if(!confirm("Smazat tento cvik ze skupiny?")) return;
+  g.exercises = g.exercises.filter(x=>x.id!==exid);
+  persistConfig(); renderConfigEditor(); showToast("Cvik smazán");
+}
+function duplicateExercise(gid, exid){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex) return;
+  const copy = JSON.parse(JSON.stringify(ex));
+  copy.id = uid("e");
+  copy.label = ex.label + " (kopie)";
+  const i = g.exercises.findIndex(x=>x.id===exid);
+  g.exercises.splice(i+1, 0, copy);
+  persistConfig(); syncCurrentWithConfig(); renderConfigEditor();
+  showToast("Cvik zkopírován — uprav si název/váhy");
+}
+function renameExercise(gid, exid, val){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex) return;
+  ex.label = val.trim() || ex.label; persistConfig();
+}
+function updateExerciseWeights(gid, exid, val){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex) return;
+  ex.weights = val.split(",").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+  persistConfig(); showToast("Váhy upraveny");
+}
+function updateExerciseCoef(gid, exid, val){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex) return;
+  ex.coef = parseFloat(val)||1; persistConfig(); showToast("Koeficient upraven");
+}
+function updateExerciseAddBw(gid, exid, checked){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex) return;
+  ex.addBodyweight = !!checked; persistConfig(); renderConfigEditor();
+}
+function moveExercise(gid, exid, dir){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const i = g.exercises.findIndex(x=>x.id===exid), j=i+dir;
+  if(j<0||j>=g.exercises.length) return;
+  [g.exercises[i], g.exercises[j]] = [g.exercises[j], g.exercises[i]];
+  persistConfig(); renderConfigEditor();
+}
+function syncCurrentWithConfig(){
+  if(!current) return;
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=> ensureExerciseData(current, ex)));
+  SPORTS.sports.forEach(sp=> ensureSportData(current, sp));
+}
+
+/* ============================================================
+   SPORTY EDITOR
+   ============================================================ */
+function renderSportEditor(){
+  const wrap = document.getElementById("sportGroups");
+  wrap.innerHTML = SPORTS.sports.map((sp, si)=>{
+    const checks = SPORT_FIELD_DEFS.map(f=>{
+      const active = sp.fields.includes(f.k);
+      return `<label class="cfg-check-pill ${active?'active':''}">
+        <input type="checkbox" ${active?'checked':''} onchange="toggleSportField('${sp.id}','${f.k}', this.checked)"> ${f.label}
+      </label>`;
+    }).join("");
+    return `<div class="cfg-group">
+      <div class="cfg-group-head">
+        <input class="cfg-icon-input" value="${escAttr(sp.icon||'')}" maxlength="4" onchange="updateSportIcon('${sp.id}', this.value)">
+        <input class="cfg-title-input" value="${escAttr(sp.title)}" onchange="renameSport('${sp.id}', this.value)">
+        <button class="cfg-move" onclick="moveSport('${sp.id}',-1)" ${si===0?'style="visibility:hidden"':''}>▲</button>
+        <button class="cfg-move" onclick="moveSport('${sp.id}',1)" ${si===SPORTS.sports.length-1?'style="visibility:hidden"':''}>▼</button>
+        <button class="cfg-del-group" onclick="deleteSport('${sp.id}')">🗑</button>
+      </div>
+      <div class="cfg-checks">${checks}</div>
+    </div>`;
+  }).join("");
+
+  const newChecks = document.getElementById("newSportChecks");
+  newChecks.innerHTML = SPORT_FIELD_DEFS.map(f=>`
+    <label class="cfg-check-pill" id="newSportPill_${f.k}">
+      <input type="checkbox" data-newfield="${f.k}" onchange="this.closest('label').classList.toggle('active', this.checked)"> ${f.label}
+    </label>`).join("");
+}
+function addSport(){
+  const icon = document.getElementById("newSportIcon").value.trim() || "🏃";
+  const title = document.getElementById("newSportTitle").value.trim();
+  if(!title){ showToast("Zadej název sportu"); return; }
+  const fields = SPORT_FIELD_DEFS.filter(f=> document.querySelector(`input[data-newfield="${f.k}"]`).checked).map(f=>f.k);
+  if(fields.length===0){ showToast("Zaškrtni aspoň jednu sledovanou hodnotu"); return; }
+  SPORTS.sports.push({ id: uid("s"), icon, title, fields });
+  persistSports();
+  document.getElementById("newSportTitle").value = "";
+  syncCurrentWithConfig(); renderSportEditor(); showToast("Sport přidán");
+}
+function deleteSport(spid){
+  const sp = SPORTS.sports.find(x=>x.id===spid);
+  if(!confirm(`Zrušit sport "${sp?sp.title:''}"?`)) return;
+  SPORTS.sports = SPORTS.sports.filter(x=>x.id!==spid);
+  persistSports(); renderSportEditor(); showToast("Sport zrušen");
+}
+function renameSport(spid, val){ const sp=SPORTS.sports.find(x=>x.id===spid); if(!sp) return; sp.title = val.trim()||sp.title; persistSports(); }
+function updateSportIcon(spid, val){ const sp=SPORTS.sports.find(x=>x.id===spid); if(!sp) return; sp.icon = val; persistSports(); }
+function toggleSportField(spid, key, checked){
+  const sp = SPORTS.sports.find(x=>x.id===spid); if(!sp) return;
+  if(checked && !sp.fields.includes(key)) sp.fields.push(key);
+  if(!checked) sp.fields = sp.fields.filter(f=>f!==key);
+  persistSports(); renderSportEditor();
+}
+function moveSport(spid, dir){
+  const i = SPORTS.sports.findIndex(x=>x.id===spid), j=i+dir;
+  if(j<0||j>=SPORTS.sports.length) return;
+  [SPORTS.sports[i], SPORTS.sports[j]] = [SPORTS.sports[j], SPORTS.sports[i]];
+  persistSports(); renderSportEditor();
+}
+
+/* ============================================================
+   VIZUALIZACE SVALŮ
+   ============================================================ */
+function computeMuscleForRecord(rec){
+  const vals = {}; MUSCLE_DEFS.forEach(m=> vals[m.k]=0);
+  const bodyWeight = parseFloat(rec.meta.weight)||0;
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
+    if(!ex.muscle || !(ex.muscle in vals)) return;
+    let v=0;
+    if(ex.type==="ladder") v = ladderKg(rec.data[ex.id], ex.weights);
+    else if(ex.type==="bodyweight") v = bodyWeight*(ex.coef??1)*sumReps(rec.data[ex.id]);
+    else v = sumReps(rec.data[ex.id]);
+    vals[ex.muscle] += v;
+  }));
+  return vals;
+}
+function computeMuscleVolumeTotals(){
+  const primary = {}, secondary = {};
+  MUSCLE_DEFS.forEach(m=>{ primary[m.k]=0; secondary[m.k]=0; });
+  let allRecs = records.map(r=> r.id===current.id ? current : r);
+  if(!records.some(r=>r.id===current.id)) allRecs = [...allRecs, current];
+  allRecs.forEach(rec=>{
+    const bodyWeight = parseFloat(rec.meta.weight)||0;
+    CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
+      let v=0;
+      if(ex.type==="ladder"){
+        v = ladderKg(rec.data[ex.id], ex.weights);
+        if(ex.addBodyweight) v += ladderBodyweightKg(rec.data[ex.id], ex.weights, bodyWeight);
+      }
+      else if(ex.type==="bodyweight") v = bodyWeight*(ex.coef??1)*sumReps(rec.data[ex.id]);
+      else v = sumReps(rec.data[ex.id]);
+      if(v<=0) return;
+      if(ex.muscle && ex.muscle in primary) primary[ex.muscle]+=v;
+      (ex.secondary||[]).forEach(sm=>{ if(sm in secondary) secondary[sm]+=v*0.5; });
+    }));
+  });
+  return {primary, secondary};
+}
+function computeMuscleToday(){ return computeMuscleForRecord(current); }
+function renderMuscleVolumeSummary(){
+  const host = document.getElementById("muscleVolumeSummary");
+  if(!host) return;
+  const {primary, secondary} = computeMuscleVolumeTotals();
+  const rows = MUSCLE_DEFS.map(m=>({ k:m.k, label:m.label, p:primary[m.k]||0, s:secondary[m.k]||0 }))
+    .map(r=> ({...r, total: r.p+r.s}))
+    .sort((a,b)=> b.total-a.total);
+  const maxTotal = Math.max(1, ...rows.map(r=>r.total));
+  host.innerHTML = rows.map(r=>{
+    if(r.total<=0) return `<div class="mv-row"><span class="mv-label">${r.label}</span><span class="mv-val" style="color:var(--faint)">–</span></div>`;
+    const pPct = Math.round(r.p/maxTotal*100), sPct = Math.round(r.s/maxTotal*100);
+    return `<div class="mv-row">
+      <span class="mv-label">${r.label}</span>
+      <div class="mv-bar"><span class="mv-bar-p" style="width:${pPct}%"></span><span class="mv-bar-s" style="width:${sPct}%"></span></div>
+      <span class="mv-val">${Math.round(r.p).toLocaleString("cs-CZ")}${r.s>0 ? ' + '+Math.round(r.s).toLocaleString("cs-CZ")+' sek.' : ''} kg</span>
+    </div>`;
+  }).join("");
+}
+function computeMuscleNeglect(){
+  const result = {}; MUSCLE_DEFS.forEach(m=> result[m.k] = null);
+  const sortedPast = [...records].filter(r=>r.id!==current.id).sort((a,b)=> (parseInt(b.meta.trainNum)||0)-(parseInt(a.meta.trainNum)||0));
+  const sessions = [ current, ...sortedPast ];
+  sessions.forEach((rec, idx)=>{
+    CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
+      if(!ex.muscle) return;
+      let has=false;
+      if(ex.type==="ladder") has = Object.values(rec.data[ex.id]||{}).some(v=>sumReps(v)>0);
+      else has = sumReps(rec.data[ex.id])>0;
+      if(has && result[ex.muscle]===null) result[ex.muscle] = idx;
+    }));
+  });
+  return result;
+}
+function parseCzDate(str){
+  if(!str) return null;
+  str = str.trim();
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(iso){
+    const dt = new Date(parseInt(iso[1],10), parseInt(iso[2],10)-1, parseInt(iso[3],10));
+    dt.setHours(0,0,0,0);
+    return dt;
+  }
+  const parts = str.split(".").map(s=>s.trim()).filter(Boolean);
+  if(parts.length < 3) return null;
+  let [d,m,y] = parts.map(s=>parseInt(s,10));
+  if(isNaN(d)||isNaN(m)||isNaN(y)) return null;
+  if(y < 100) y += 2000;
+  const dt = new Date(y, m-1, d);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+function formatDateDisplay(str){
+  const d = parseCzDate(str);
+  if(!d) return str || "";
+  return d.getDate()+"."+(d.getMonth()+1)+"."+d.getFullYear();
+}
+function dayLabel(d){ return ["Ne","Po","Út","St","Čt","Pá","So"][d.getDay()] + " " + d.getDate()+"."+(d.getMonth()+1)+"."; }
+function computeWeekBuckets(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = [];
+  for(let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(d); }
+  const buckets = days.map(d=>({ date:d, label:dayLabel(d), vals:Object.fromEntries(MUSCLE_DEFS.map(m=>[m.k,0])) }));
+  let allRecs = records.map(r=> r.id===current.id ? current : r);
+  if(!records.some(r=>r.id===current.id)) allRecs = [...allRecs, current];
+  allRecs.forEach(rec=>{
+    const dt = parseCzDate(rec.meta.date);
+    if(!dt) return;
+    const bucket = buckets.find(b=> b.date.getTime()===dt.getTime());
+    if(!bucket) return;
+    const vals = computeMuscleForRecord(rec);
+    MUSCLE_DEFS.forEach(m=> bucket.vals[m.k] += vals[m.k]);
+  });
+  return buckets;
+}
+function lerpColor(hexA, hexB, t){
+  const a=[1,3,5].map(i=>parseInt(hexA.slice(i,i+2),16));
+  const b=[1,3,5].map(i=>parseInt(hexB.slice(i,i+2),16));
+  const c=a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+  return "#"+c.map(v=>v.toString(16).padStart(2,'0')).join("");
+}
+function todayColor(t){ return lerpColor("#2a2f37", "#ff4a00", Math.max(0,Math.min(1,t))); }
+function neglectColor(sessionsAgo){
+  if(sessionsAgo===null) return "#3a3f47";
+  if(sessionsAgo===0) return "#7ed957";
+  if(sessionsAgo<=2) return "#c7e05a";
+  if(sessionsAgo<=4) return "#ffc94a";
+  if(sessionsAgo<=7) return "#ff8a4a";
+  return "#ff5c5c";
+}
+
+/* ---- kategorický systém (Primární / Sekundární / Netrénované) ---- */
+const CAT_COLORS = { primary:"#e5484d", secondary:"#f2b134", untargeted:"#454b54" };
+function exerciseDone(rec, ex){
+  if(!rec || !rec.data) return false;
+  if(ex.type==="ladder") return Object.values(rec.data[ex.id]||{}).some(v=>sumReps(v)>0);
+  return sumReps(rec.data[ex.id])>0;
+}
+function doneIdsForRecords(recs){
+  const set = new Set();
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
+    recs.forEach(rec=>{ if(exerciseDone(rec, ex)) set.add(ex.id); });
+  }));
+  return set;
+}
+function classifyMuscles(doneIds){
+  const status = {}; MUSCLE_DEFS.forEach(m=> status[m.k]="untargeted");
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
+    if(doneIds.has(ex.id) && ex.muscle && status[ex.muscle]!=="primary") status[ex.muscle]="primary";
+  }));
+  CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
+    if(doneIds.has(ex.id) && (ex.secondary||[]).length){
+      (ex.secondary||[]).forEach(sm=>{ if(status[sm]==="untargeted") status[sm]="secondary"; });
+    }
+  }));
+  return status;
+}
+function recordsInLastNDays(n){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const cutoff = new Date(today); cutoff.setDate(cutoff.getDate()-(n-1));
+  let allRecs = records.map(r=> r.id===current.id ? current : r);
+  if(!records.some(r=>r.id===current.id)) allRecs = [...allRecs, current];
+  return allRecs.filter(rec=>{ const d=parseCzDate(rec.meta.date); return d && d.getTime()>=cutoff.getTime() && d.getTime()<=today.getTime(); });
+}
+function categoryLegendHtml(){
+  return `<div style="display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:2px;">
+    <span style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--muted)"><span style="width:11px;height:11px;border-radius:50%;background:${CAT_COLORS.primary};display:inline-block"></span>Primární svaly</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--muted)"><span style="width:11px;height:11px;border-radius:50%;background:${CAT_COLORS.secondary};display:inline-block"></span>Sekundární svaly</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--muted)"><span style="width:11px;height:11px;border-radius:50%;background:${CAT_COLORS.untargeted};display:inline-block"></span>Netrénované</span>
+  </div>`;
+}
+
+/* ---- anatomicky tvarované tělo (Garmin-styl): tapered kapsle + gradient lesk ---- */
+function capsule(cx, yTop, yBot, wTop, wBot){
+  const rTop=wTop/2, rBot=wBot/2;
+  return `M ${cx-rTop} ${yTop+rTop*0.15}
+    C ${cx-rTop} ${(yTop-rTop*0.5).toFixed(1)} ${(cx-rTop*0.55).toFixed(1)} ${yTop-rTop} ${cx} ${yTop-rTop}
+    C ${(cx+rTop*0.55).toFixed(1)} ${yTop-rTop} ${cx+rTop} ${(yTop-rTop*0.5).toFixed(1)} ${cx+rTop} ${yTop+rTop*0.15}
+    L ${cx+rBot} ${yBot-rBot*0.15}
+    C ${cx+rBot} ${(yBot+rBot*0.5).toFixed(1)} ${(cx+rBot*0.55).toFixed(1)} ${yBot+rBot} ${cx} ${yBot+rBot}
+    C ${(cx-rBot*0.55).toFixed(1)} ${yBot+rBot} ${cx-rBot} ${(yBot+rBot*0.5).toFixed(1)} ${cx-rBot} ${yBot-rBot*0.15}
+    Z`;
+}
+function abGrid(cxL, cxR, yStart, rowH, gap){
+  let s = "";
+  for(let i=0;i<3;i++){
+    const y = yStart + i*(rowH+gap);
+    s += `<rect x="${cxL}" y="${y}" width="16" height="${rowH}" rx="4"/><rect x="${cxR}" y="${y}" width="16" height="${rowH}" rx="4"/>`;
+  }
+  return s;
+}
+const BODY_BASE_SHAPES = `
+  <ellipse cx="80" cy="24" rx="16" ry="18" class="bb"/>
+  <path d="${capsule(80,34,52,18,52)}" class="bb"/>
+  <path d="${capsule(80,46,140,54,42)}" class="bb"/>
+  <path d="${capsule(36,52,106,21,15)}" class="bb"/>
+  <path d="${capsule(124,52,106,21,15)}" class="bb"/>
+  <path d="${capsule(31,106,150,15,11)}" class="bb"/>
+  <path d="${capsule(129,106,150,15,11)}" class="bb"/>
+  <ellipse cx="31" cy="153" rx="6.5" ry="8" class="bb"/>
+  <ellipse cx="129" cy="153" rx="6.5" ry="8" class="bb"/>
+  <path d="${capsule(66,136,204,22,18)}" class="bb"/>
+  <path d="${capsule(94,136,204,22,18)}" class="bb"/>
+  <path d="${capsule(67,204,266,16,11)}" class="bb"/>
+  <path d="${capsule(93,204,266,16,11)}" class="bb"/>
+  <ellipse cx="67" cy="270" rx="8" ry="6" class="bb"/>
+  <ellipse cx="93" cy="270" rx="8" ry="6" class="bb"/>
+`;
+const OVERLAYS = {
+  front: [
+    {m:"shoulders", shape:`<ellipse cx="42" cy="55" rx="14" ry="11" transform="rotate(-25 42 55)"/><ellipse cx="118" cy="55" rx="14" ry="11" transform="rotate(25 118 55)"/>`},
+    {m:"chest", shape:`<ellipse cx="66" cy="66" rx="17" ry="14"/><ellipse cx="94" cy="66" rx="17" ry="14"/>`},
+    {m:"core", shape: abGrid(64,80,88,12,3)},
+    {m:"biceps", shape:`<path d="${capsule(36,58,98,16,11)}"/><path d="${capsule(124,58,98,16,11)}"/>`},
+    {m:"forearms", shape:`<path d="${capsule(31,110,146,12,9)}"/><path d="${capsule(129,110,146,12,9)}"/>`},
+    {m:"quads", shape:`<path d="${capsule(66,140,198,18,14)}"/><path d="${capsule(94,140,198,18,14)}"/>`},
+    {m:"calves", shape:`<path d="${capsule(67,208,260,13,9)}"/><path d="${capsule(93,208,260,13,9)}"/>`}
+  ],
+  back: [
+    {m:"shoulders", shape:`<ellipse cx="42" cy="55" rx="14" ry="11" transform="rotate(25 42 55)"/><ellipse cx="118" cy="55" rx="14" ry="11" transform="rotate(-25 118 55)"/>`},
+    {m:"back", shape:`<path d="${capsule(80,50,116,48,32)}"/>`},
+    {m:"glutes", shape:`<ellipse cx="66" cy="130" rx="15" ry="12"/><ellipse cx="94" cy="130" rx="15" ry="12"/>`},
+    {m:"triceps", shape:`<path d="${capsule(36,58,98,16,11)}"/><path d="${capsule(124,58,98,16,11)}"/>`},
+    {m:"forearms", shape:`<path d="${capsule(31,110,146,12,9)}"/><path d="${capsule(129,110,146,12,9)}"/>`},
+    {m:"hamstrings", shape:`<path d="${capsule(66,140,198,18,14)}"/><path d="${capsule(94,140,198,18,14)}"/>`},
+    {m:"calves", shape:`<path d="${capsule(67,208,260,13,9)}"/><path d="${capsule(93,208,260,13,9)}"/>`}
+  ]
+};
+function bodySvg(view, colorFn){
+  const overlays = OVERLAYS[view].map(o=>{
+    const color = colorFn(o.m);
+    return `<g fill="${color}">${o.shape}</g>`;
+  }).join("");
+  return `<svg viewBox="0 0 160 280" width="140" height="245" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="sheen-${view}" cx="32%" cy="18%" r="85%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+        <stop offset="55%" stop-color="#ffffff" stop-opacity="0.06"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="soft-${view}" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-opacity="0.28"/>
+      </filter>
+      <style>.bb{fill:var(--surface-2);stroke:var(--border);stroke-width:1.4;}</style>
+    </defs>
+    <g filter="url(#soft-${view})">${BODY_BASE_SHAPES}</g>
+    ${overlays}
+    <rect x="0" y="0" width="160" height="280" fill="url(#sheen-${view})" style="mix-blend-mode:soft-light" pointer-events="none"/>
+    <text x="80" y="278" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="Inter,sans-serif">${view==='front'?'Zepředu':'Zezadu'}</text>
+  </svg>`;
+}
+
+/* ---- vykreslení podle režimu: Dnes / Týden / Opomíjené ---- */
+function renderMuscleView(){
+  const bodiesHost = document.getElementById("muscleBodies");
+  const legendHost = document.getElementById("muscleLegend");
+  const listHost = document.getElementById("muscleList");
+  const heatHost = document.getElementById("muscleHeatmap") || (()=>{ const d=document.createElement("div"); d.id="muscleHeatmap"; listHost.parentElement.insertBefore(d, listHost); return d; })();
+
+  let colorFn, valueLabelFn;
+  heatHost.innerHTML = "";
+  const catLabel = (s)=> s==="primary"?"Primární":s==="secondary"?"Sekundární":"Netrénováno";
+
+  if(muscleMode==="today"){
+    const status = classifyMuscles(doneIdsForRecords([current]));
+    const vols = computeMuscleToday();
+    colorFn = (m)=> CAT_COLORS[status[m]];
+    valueLabelFn = (m)=> vols[m]>0 ? `${catLabel(status[m])} · ${Math.round(vols[m])} kg/opak` : catLabel(status[m]);
+    legendHost.innerHTML = categoryLegendHtml();
+  } else if(muscleMode==="week"){
+    const recs7 = recordsInLastNDays(7);
+    const status = classifyMuscles(doneIdsForRecords(recs7));
+    const buckets = computeWeekBuckets();
+    const totals = {}; MUSCLE_DEFS.forEach(m=> totals[m.k] = buckets.reduce((s,b)=>s+b.vals[m.k],0));
+    colorFn = (m)=> CAT_COLORS[status[m]];
+    valueLabelFn = (m)=> totals[m]>0 ? `${catLabel(status[m])} · ${Math.round(totals[m])} kg/opak za týden` : catLabel(status[m]);
+    legendHost.innerHTML = categoryLegendHtml();
+    heatHost.innerHTML = buildHeatmapTable(buckets);
+  } else {
+    const neg = computeMuscleNeglect();
+    colorFn = (m)=> neglectColor(neg[m]);
+    valueLabelFn = (m)=> neg[m]===null ? "zatím nikdy" : (neg[m]===0 ? "trénováno v tomto zápisu" : `naposledy před ${neg[m]} tréninky`);
+    legendHost.innerHTML = "Zelená = trénováno nedávno, červená/šedá = dlouho opomíjená partie.";
+  }
+
+  bodiesHost.innerHTML = bodySvg("front", colorFn) + bodySvg("back", colorFn);
+  listHost.innerHTML = MUSCLE_DEFS.map(m=>`
+    <div class="row"><span class="row-label">${m.label}</span><span style="font-family:var(--mono);font-size:0.78rem;color:var(--muted)">${valueLabelFn(m.k)}</span></div>
+  `).join("");
+  renderMuscleVolumeSummary();
+}
+function buildHeatmapTable(buckets){
+  const rows = MUSCLE_DEFS.map(m=>{
+    const rowMax = Math.max(1, ...buckets.map(b=>b.vals[m.k]));
+    const cells = buckets.map(b=>{
+      const v = b.vals[m.k];
+      const bg = v>0 ? todayColor(v/rowMax) : "var(--surface-2)";
+      return `<div class="week-cell" style="background:${bg}" title="${m.label} — ${b.label}">${v>0?Math.round(v):''}</div>`;
+    }).join("");
+    return `<div class="week-row"><div class="week-row-label">${m.label}</div><div class="week-row-cells">${cells}</div></div>`;
+  }).join("");
+  const header = buckets.map(b=>`<div class="week-day-label">${b.label.split(' ')[0]}</div>`).join("");
+  return `<div class="week-grid">
+    <div class="week-row"><div class="week-row-label"></div><div class="week-row-cells">${header}</div></div>
+    ${rows}
+  </div>`;
+}
+
+/* ============================================================
+   VÝKON — vyhodnocení běhů/vzdálenostních sportů
+   ============================================================ */
+function getDistanceSports(){ return SPORTS.sports.filter(sp=> sp.fields.includes("km")); }
+function parseDurationToMinutes(str, isDistanceContext){
+  if(!str) return 0;
+  str = String(str).trim().replace(/['']/g, ":");
+  if(str.includes(":")){
+    const parts = str.split(":").map(s=>parseFloat(s.replace(",","."))||0);
+    if(parts.length===3){
+      if(parts[0] >= 10) return parts[0] + parts[1]/60;
+      return parts[0]*60 + parts[1] + parts[2]/60;
+    }
+    if(parts.length===2){
+      // U vzdálenostních sportů (běh) obvykle chápeme "1:20" jako 1h 20min, ne 1min 20s.
+      // Ale žádný trénink netrvá 10+ hodin, takže "48:45" nemůže být 48h — je to 48min 45s.
+      if(parts[0] >= 10) return parts[0] + parts[1]/60;
+      return isDistanceContext ? (parts[0]*60 + parts[1]) : (parts[0] + parts[1]/60);
+    }
+    return parts[0]||0;
+  }
+  if(str.includes(",")){
+    const bits = str.split(",").map(s=>parseFloat(s)||0);
+    if(bits.length>=2) return bits[0] + bits[1]/60;
+  }
+  return parseFloat(str)||0;
+}
+function collectRuns(){
+  let allRecs = records.map(r=> r.id===current.id ? current : r);
+  if(!records.some(r=>r.id===current.id)) allRecs = [...allRecs, current];
+  const distSports = getDistanceSports();
+  const entries = [];
+  allRecs.forEach(rec=>{
+    distSports.forEach(sp=>{
+      const d = rec.sports && rec.sports[sp.id]; if(!d) return;
+      const km = parseFloat(d.km)||0, duration = parseDurationToMinutes(d.duration, true), elevation = parseFloat(d.elevation)||0;
+      if(km<=0 || duration<=0) return;
+      const realPace = duration/km;
+      const adjKm = km + elevation/100;
+      const flatPace = duration/adjKm;
+      const dt = parseCzDate(rec.meta.date);
+      entries.push({ recId:rec.id, sportTitle:sp.title, sportIcon:sp.icon, date:formatDateDisplay(rec.meta.date), dt, km, duration, elevation, realPace, flatPace, trainNum:rec.meta.trainNum, vo2max: d.vo2max||null });
+    });
+  });
+  entries.sort((a,b)=>{
+    const ta = a.dt?a.dt.getTime():0, tb = b.dt?b.dt.getTime():0;
+    if(tb!==ta) return tb-ta;
+    return (parseInt(b.trainNum)||0)-(parseInt(a.trainNum)||0);
+  });
+  return entries;
+}
+function weekLabel(mondayIso){ const d = new Date(mondayIso); return "Týden "+d.getDate()+"."+(d.getMonth()+1)+"."; }
+function monthLabel(ym){
+  const [y,m] = ym.split("-");
+  const names=["led","úno","bře","dub","kvě","čvn","čvc","srp","zář","říj","lis","pro"];
+  return names[parseInt(m,10)-1]+" "+y;
+}
+function aggregatePerf(mode){
+  const entries = collectRuns().filter(e=>e.dt);
+  const buckets = {};
+  entries.forEach(e=>{
+    let key;
+    if(mode==="week"){
+      const monday = new Date(e.dt); const day=(monday.getDay()+6)%7; monday.setDate(monday.getDate()-day); monday.setHours(0,0,0,0);
+      key = monday.toISOString().slice(0,10);
+    } else {
+      key = e.dt.getFullYear()+"-"+String(e.dt.getMonth()+1).padStart(2,"0");
+    }
+    if(!buckets[key]) buckets[key] = { key, km:0, duration:0, adjKm:0 };
+    buckets[key].km += e.km; buckets[key].duration += e.duration; buckets[key].adjKm += (e.km + e.elevation/100);
+  });
+  const arr = Object.values(buckets).sort((a,b)=> a.key<b.key?1:-1);
+  return arr.slice(0, mode==="week"?8:6).map(b=>({
+    label: mode==="week" ? weekLabel(b.key) : monthLabel(b.key),
+    km: b.km,
+    realPace: b.duration/Math.max(b.km,0.001),
+    flatPace: b.duration/Math.max(b.adjKm,0.001)
+  }));
+}
+function renderPerfView(){
+  const tableHost = document.getElementById("perfTable");
+  const listHost = document.getElementById("perfList");
+  const agg = aggregatePerf(perfMode);
+  if(agg.length===0){
+    tableHost.innerHTML = `<div class="empty-state"><div class="ic">🏃</div><div>Zatím žádné běhy s vyplněným km, časem a datem.</div></div>`;
+  } else {
+    tableHost.innerHTML = `<div class="perf-table">
+      <div class="perf-head-row"><span>Období</span><span>Km</span><span>Tempo reálné</span><span>Tempo na rovinu</span></div>
+      ${agg.map(b=>`<div class="perf-row">
+        <span>${b.label}</span><span style="font-family:var(--mono)">${b.km.toFixed(1)}</span>
+        <span class="p-pace">${formatPace(b.realPace)}</span><span class="p-pace flat">${formatPace(b.flatPace)}</span>
+      </div>`).join("")}
+    </div>`;
+  }
+  const entries = collectRuns();
+  if(entries.length===0){
+    listHost.innerHTML = `<div class="section-note">Zatím žádné jednotlivé běhy k zobrazení.</div>`;
+  } else {
+    listHost.innerHTML = `<div class="perf-list-item" style="border-bottom:1px solid var(--border);padding-bottom:8px;">
+        <span class="p-date" style="font-weight:700">Datum · km · převýšení</span>
+        <span class="p-vals" style="font-size:0.68rem;text-transform:uppercase;color:var(--muted)"><span>reálné</span><span class="flat">na rovinu</span></span>
+      </div>` + entries.slice(0,25).map(e=>`
+      <div class="perf-list-item">
+        <span class="p-date">${e.sportIcon||''} ${e.date||'bez data'} · ${e.km.toFixed(1)}km${e.elevation?' · '+e.elevation+'m':''}${e.vo2max?' · VO2max '+e.vo2max:''}</span>
+        <span class="p-vals"><span>${formatPace(e.realPace)}</span><span class="flat">${formatPace(e.flatPace)}</span></span>
+      </div>`).join("");
+  }
+}
+
+/* ============================================================
+   PDF EXPORT
+   ============================================================ */
+function buildPrintHtml(){
+  const m = current.meta, s = current.suunto;
+  let html = `<div class="p-h1">Tréninková karta #${m.trainNum||'–'}</div>
+  <div class="p-meta">Datum: ${formatDateDisplay(m.date)||'–'} · Váha: ${m.weight||'–'}kg · ${m.timeStart||''}–${m.timeEnd||''} (${m.duration||'–'} min) · Spánek: ${m.sleep||'–'}h · Pocit: ${m.feel||'–'}/10 · Únava: ${m.fatigue||'–'}/10${m.rpe?' · RPE: '+m.rpe+'/10':''}${m.priorActivity?' · Navazuje na: '+(m.priorActivity==='Ano'?'jinou aktivitu dnes':m.priorActivity):''}</div>`;
+
+  if(s.hrAvg || s.hrMax || s.tss){
+    html += `<div class="p-sec"><div class="p-sec-title">Suunto</div>
+    <div class="p-row"><span>Průměrná TF</span><b>${s.hrAvg||'–'} bpm</b></div>
+    <div class="p-row"><span>Maximální TF</span><b>${s.hrMax||'–'} bpm</b></div>
+    <div class="p-row"><span>TSS</span><b>${s.tss||'–'}</b></div></div>`;
+  }
+
+  CONFIG.groups.forEach(g=>{
+    let rows = "";
+    g.exercises.forEach(ex=>{
+      if(ex.type==="ladder"){
+        (ex.weights||[]).forEach(w=>{ const v = current.data[ex.id] && current.data[ex.id][w]; if(v) rows += `<div class="p-row"><span>${ladderRowLabel(ex,w)}</span><b>${v}</b></div>`; });
+      } else { const v = current.data[ex.id]; if(v) rows += `<div class="p-row"><span>${ex.label}</span><b>${v}</b></div>`; }
+    });
+    if(rows) html += `<div class="p-sec"><div class="p-sec-title">${g.icon||''} ${g.title}</div>${rows}</div>`;
+  });
+
+  SPORTS.sports.forEach(sp=>{
+    const d = current.sports[sp.id]||{};
+    const defs = SPORT_FIELD_DEFS.filter(f=>sp.fields.includes(f.k) && d[f.k]);
+    if(defs.length){
+      let rows = defs.map(f=>`<div class="p-row"><span>${f.label}</span><b>${d[f.k]}</b></div>`).join("");
+      html += `<div class="p-sec"><div class="p-sec-title">${sp.icon||''} ${sp.title}</div>${rows}</div>`;
+    }
+  });
+
+  let sumRows = "";
+  CONFIG.groups.forEach(g=>{
+    const t = groupTotals(g, current);
+    const parts = [];
+    if(t.kgFree) parts.push(`váhy ${t.kgFree}kg`);
+    if(t.kgBody) parts.push(`vlastní ${t.kgBody}kg`);
+    if(t.reps) parts.push(`${t.reps} opak.`);
+    if(parts.length) sumRows += `<div class="p-row"><span>${g.icon||''} ${g.title}</span><b>${parts.join(' + ')}</b></div>`;
+  });
+  html += `<div class="p-sec"><div class="p-sec-title">Souhrn</div>${sumRows}
+    <div class="p-row"><span>Rekord</span><b>${current.recordManual ? "Ano 🏆" : "Ne"}</b></div></div>`;
+  return html;
+}
+function exportPdf(){ document.getElementById("printArea").innerHTML = buildPrintHtml(); window.print(); }
+
+/* ============================================================
+   COPY FOR AI
+   ============================================================ */
+function buildAiText(){
+  const m = current.meta, s = current.suunto;
+  let lines = [];
+  lines.push(`TRÉNINK #${m.trainNum||'?'} — ${formatDateDisplay(m.date)||'?'}`);
+  lines.push(`Váha: ${m.weight||'-'}kg | ${m.timeStart||'-'}–${m.timeEnd||'-'} (${m.duration||'-'} min) | Spánek: ${m.sleep||'-'}h | Pocit: ${m.feel||'-'}/10 | Únava: ${m.fatigue||'-'}/10${m.rpe?' | RPE: '+m.rpe+'/10':''}${m.priorActivity?' | Navazuje na: '+(m.priorActivity==='Ano'?'jinou aktivitu dnes':m.priorActivity):''}`);
+  if(s.hrAvg||s.hrMax||s.tss) lines.push(`Suunto: TF prům ${s.hrAvg||'-'}, TF max ${s.hrMax||'-'}, TSS ${s.tss||'-'}`);
+  lines.push("");
+
+  CONFIG.groups.forEach(g=>{
+    let rows = [];
+    g.exercises.forEach(ex=>{
+      if(ex.type==="ladder"){ (ex.weights||[]).forEach(w=>{ const v=current.data[ex.id]&&current.data[ex.id][w]; if(v) rows.push(`  ${ladderRowLabel(ex,w)}: ${v}`); }); }
+      else { const v=current.data[ex.id]; if(v) rows.push(`  ${ex.label}${ex.type==='bodyweight'?' (x'+(ex.coef??1)+'kg)':''}: ${v}`); }
+    });
+    if(rows.length){ lines.push(`${g.title.toUpperCase()}:`); lines.push(...rows); lines.push(""); }
+  });
+
+  SPORTS.sports.forEach(sp=>{
+    const d = current.sports[sp.id]||{};
+    const parts = SPORT_FIELD_DEFS.filter(f=>sp.fields.includes(f.k) && d[f.k]).map(f=>`${f.label}: ${d[f.k]}`);
+    if(parts.length) lines.push(`${sp.title.toUpperCase()}: ${parts.join(', ')}`);
+  });
+
+  lines.push("");
+  let sumParts = CONFIG.groups.map(g=>{
+    const t = groupTotals(g, current), parts=[];
+    if(t.kgFree) parts.push(t.kgFree+"kg činky"); if(t.kgBody) parts.push(t.kgBody+"kg vlastní váha"); if(t.reps) parts.push(t.reps+" opak.");
+    return parts.length ? `${g.title}: ${parts.join(", ")}` : null;
+  }).filter(Boolean);
+  const grand = CONFIG.groups.reduce((acc,g)=>{ const t=groupTotals(g,current); return acc+t.kgTotal; },0);
+  lines.push(`SOUHRN: celkem zvednuto ${grand}kg | ${sumParts.join(" | ")} | rekord: ${current.recordManual?'ano':'ne'}`);
+  return lines.join("\n");
+}
+/* ============================================================
+   OCR SKEN SUUNTO SNÍMKU
+   ============================================================ */
+function extractSuuntoDuration(text){
+  // formát "1:14'52" (h:min'sek)
+  let m = text.match(/(\d{1,2}):(\d{1,2})['′](\d{1,2}(?:[.,]\d+)?)/);
+  if(m){
+    const h=parseInt(m[1],10), mi=parseInt(m[2],10), s=Math.round(parseFloat(m[3].replace(",",".")));
+    return h+":"+String(mi).padStart(2,'0')+":"+String(s).padStart(2,'0');
+  }
+  // formát "10'26.3" (min'sek.des, bez hodin)
+  m = text.match(/(\d{1,3})['′](\d{1,2}(?:[.,]\d+)?)/);
+  if(m){
+    const mi=parseInt(m[1],10), s=Math.round(parseFloat(m[2].replace(",",".")));
+    return mi+":"+String(s).padStart(2,'0');
+  }
+  // klasické H:MM:SS nebo MM:SS
+  m = text.match(/\d{1,2}:\d{2}:\d{2}|\d{1,2}:\d{2}/);
+  return m ? m[0] : null;
+}
+function extractLabeledLineValue(text, labelRegex, position){
+  // Suunto karty mají 2 sloupce — OCR čte nejdřív řádek popisků, pak řádek hodnot.
+  // Bereme hodnotu z NÁSLEDUJÍCÍHO řádku, na pozici (první/poslední číslo), ne první číslo za slovem.
+  // Někdy se mezi popisek a hodnotu vloudí navíc "šumový" řádek (ikonka ⓘ přečtená jako osamocené "@" apod.) — ty přeskočíme.
+  const lines = text.split(/\n/);
+  for(let i=0;i<lines.length;i++){
+    if(labelRegex.test(lines[i])){
+      for(let j=i; j<=i+4; j++){
+        const line = lines[j] || "";
+        const trimmed = line.trim();
+        if(j>i && trimmed.length<=2) continue; // prázdný řádek nebo osamocený symbol — šum, přeskočit
+        const nums = line.match(/\d+(?:[.,]\d+)?/g);
+        if(nums && nums.length) return position==="last" ? nums[nums.length-1] : nums[0];
+        if(j>i && trimmed.length>3) break; // narazili jsme na jiný text bez čísel — konec hledání
+      }
+    }
+  }
+  return null;
+}
+async function scanSuuntoImage(inputEl, targetSportId){
+  const file = inputEl.files[0]; if(!file) return;
+  if(typeof Tesseract === "undefined"){ showToast("OCR knihovna se nenačetla — zkontroluj internet"); inputEl.value=""; return; }
+  showToast("Rozpoznávám text ze snímku…");
+  try{
+    const { data } = await Tesseract.recognize(file, "eng");
+    const rawText = data.text || "";
+    const text = rawText.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // bez diakritiky, ať drobné OCR chybky ve slovech nevadí
+    const bpmMatches = [...text.matchAll(/(\d{2,3})\s*bpm/gi)].map(m=>parseInt(m[1])).filter(n=>n>=40 && n<=220);
+    const tssVal = extractLabeledLineValue(text, /TSS/i, "last");
+    const kmMatch = text.match(/(\d{1,3}[.,]\d{1,2})\s*km/i);
+    const tempoMatch = text.match(/(\d{1,2})['′](\d{1,2})\s*\/\s*km/i);
+    const cadenceMatch = text.match(/(\d{2,3})\s*krok/i);
+    const vo2max = extractLabeledLineValue(text, /Odhad\s*VO.{0,2}Max/i, "first");
+    const elevMatch = text.match(/(\d{1,4})\s*m\b/); // kotveno na jednotku "m", ne na popisek (ten bývá na jiném řádku)
+    const durationStr = extractSuuntoDuration(text);
+    let filled = [];
+    if(bpmMatches.length){
+      const avg = bpmMatches[0], max = Math.max(...bpmMatches);
+      current.suunto.hrAvg = String(avg); current.suunto.hrMax = String(Math.max(avg,max));
+      filled.push(`TF ${avg}/${Math.max(avg,max)}`);
+    }
+    if(tssVal){ current.suunto.tss = tssVal; filled.push("TSS "+tssVal); }
+
+    if(targetSportId){
+      // sken spuštěný přímo z konkrétní sportovní sekce → plní vždy tento sport
+      const sport = SPORTS.sports.find(sp=>sp.id===targetSportId);
+      if(sport){
+        ensureSportData(current, sport);
+        if(kmMatch && sport.fields.includes("km")){ current.sports[sport.id].km = kmMatch[1].replace(",","."); filled.push("km "+kmMatch[1]); }
+        if(durationStr && sport.fields.includes("duration")){
+          current.sports[sport.id].duration = durationStr;
+          filled.push("čas "+durationStr);
+          // pokud celková délka tréninku (nahoře v přehledu) ještě není vyplněná, doplní se taky
+          if(!current.meta.duration){
+            current.meta.duration = durationStr;
+            const durEl = document.querySelector('input[data-group="meta"][data-key="duration"]');
+            if(durEl) durEl.value = durationStr;
+          }
+        }
+        if(elevMatch && sport.fields.includes("elevation")){ current.sports[sport.id].elevation = elevMatch[1]; filled.push("převýšení "+elevMatch[1]+"m"); }
+        if(tempoMatch && sport.fields.includes("tempo")){ const t=tempoMatch[1]+":"+tempoMatch[2].padStart(2,"0"); current.sports[sport.id].tempo = t; filled.push("tempo "+t); }
+        if(cadenceMatch && sport.fields.includes("steps")){ current.sports[sport.id].steps = cadenceMatch[1]; filled.push("kadence "+cadenceMatch[1]); }
+        if(vo2max && sport.fields.includes("vo2max")){ current.sports[sport.id].vo2max = vo2max; filled.push("VO2max "+vo2max); }
+      }
+    } else if(kmMatch && SPORTS.sports.length){
+      // obecný sken (ze Suunto metrik) — je vidět vzdálenost → jde o konkrétní sport (běh apod.)
+      const runSport = SPORTS.sports.find(sp=>sp.fields.includes("km")) || SPORTS.sports[0];
+      ensureSportData(current, runSport);
+      current.sports[runSport.id].km = kmMatch[1].replace(",",".");
+      if(durationStr) current.sports[runSport.id].duration = durationStr;
+      if(elevMatch) current.sports[runSport.id].elevation = elevMatch[1];
+      if(tempoMatch && runSport.fields.includes("tempo")) current.sports[runSport.id].tempo = tempoMatch[1]+":"+tempoMatch[2].padStart(2,"0");
+      if(cadenceMatch && runSport.fields.includes("steps")) current.sports[runSport.id].steps = cadenceMatch[1];
+      if(vo2max && runSport.fields.includes("vo2max")) current.sports[runSport.id].vo2max = vo2max;
+      filled.push(runSport.title+" "+kmMatch[1]+"km"+(durationStr?"/"+durationStr:"")+(elevMatch?"/"+elevMatch[1]+"m":""));
+    } else if(durationStr){
+      // bez vzdálenosti → jde o celkovou délku tréninku (např. posilování)
+      current.meta.duration = durationStr;
+      const el = document.querySelector('input[data-group="meta"][data-key="duration"]');
+      if(el) el.value = durationStr;
+      filled.push("Délka "+durationStr);
+    }
+    fillFormFromCurrent();
+    if(filled.length) showToast("Rozpoznáno: "+filled.join(", ")+" — zkontroluj hodnoty");
+    else showToast("Nic rozpoznatelného se nenašlo, vyplň to prosím ručně");
+  }catch(err){
+    showToast("OCR se nepovedlo, zkus to znovu");
+  }
+  inputEl.value = "";
+}
+
+/* ============================================================
+   ZÁLOHA DAT (export/import celého stavu appky jako JSON)
+   ============================================================ */
+/* ============================================================
+   PŘIPOMÍNKA ZÁLOHY
+   ============================================================ */
+const LAST_BACKUP_KEY = "trenink_last_backup_v1";
+function getLastBackupDate(){
+  const iso = localStorage.getItem(LAST_BACKUP_KEY);
+  return iso ? new Date(iso) : null;
+}
+function markBackupDone(){ localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString()); }
+function checkBackupReminder(){
+  if(records.length === 0) return;
+  if(sessionStorage.getItem("trenink_backup_dismissed")) return;
+  const last = getLastBackupDate();
+  const daysSince = last ? (Date.now()-last.getTime())/(1000*60*60*24) : Infinity;
+  if(daysSince >= 7){
+    const banner = document.getElementById("backupBanner");
+    const text = document.getElementById("backupBannerText");
+    text.textContent = last
+      ? `⚠️ Poslední záloha před ${Math.floor(daysSince)} dny — stáhni novou, ať o data nepřijdeš.`
+      : "⚠️ Ještě jsi nikdy neudělal zálohu dat — udělej ji teď, ať o data nepřijdeš.";
+    banner.style.display = "flex";
+  }
+}
+function dismissBackupBanner(){
+  document.getElementById("backupBanner").style.display = "none";
+  sessionStorage.setItem("trenink_backup_dismissed", "1");
+}
+function backupFromBanner(){
+  exportBackup();
+  dismissBackupBanner();
+}
+
+function exportBackup(){
+  const backup = { exportedAt: new Date().toISOString(), appVersion: 7, config: CONFIG, sports: SPORTS, records: records, profile: PROFILE, pinned: pinnedRows, bodyLog: bodyLog };
+  const filename = `trenink_zaloha_${new Date().toISOString().slice(0,10)}.json`;
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:"application/json"});
+  const file = new File([blob], filename, {type:"application/json"});
+  markBackupDone();
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({ files:[file], title:"Záloha tréninkového deníku" })
+      .then(()=> showToast("Sdíleno ✓"))
+      .catch(()=>{ downloadBlob(blob, filename); });
+  } else {
+    downloadBlob(blob, filename);
+  }
+}
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 2000);
+  showToast("Záloha stažena");
+}
+function importBackupFile(inputEl){
+  const file = inputEl.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    let data;
+    try{ data = JSON.parse(e.target.result); }
+    catch(err){ showToast("Soubor se nepodařilo přečíst"); inputEl.value=""; return; }
+    if(!confirm("Import sloučí zálohu s aktuálními daty v telefonu (stejná ID se přepíší novější verzí). Pokračovat?")){ inputEl.value=""; return; }
+    try{
+      if(data.config && data.config.groups){ CONFIG = data.config; persistConfig(); }
+      if(data.sports && data.sports.sports){ SPORTS = data.sports; persistSports(); }
+      if(data.profile && typeof data.profile === "object"){ PROFILE = data.profile; persistProfile(); buildProfileGrid(); }
+      if(data.pinned && Array.isArray(data.pinned)){
+        pinnedRows = Array.from(new Set([...pinnedRows, ...data.pinned]));
+        persistPinned();
+      }
+      if(data.bodyLog && Array.isArray(data.bodyLog)){
+        const existingIds = new Set(bodyLog.map(e=>e.id));
+        data.bodyLog.forEach(e=>{ if(!existingIds.has(e.id)) bodyLog.push(e); });
+        bodyLog.sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+        persistBodyLog();
+      }
+      if(data.records && Array.isArray(data.records)){
+        const byId = {}; records.forEach(r=> byId[r.id]=r);
+        data.records.forEach(r=> byId[r.id]=r);
+        records = Object.values(byId).sort((a,b)=> (parseInt(a.meta.trainNum)||0)-(parseInt(b.meta.trainNum)||0));
+        persistRecords();
+      }
+      current = records.length ? JSON.parse(JSON.stringify(records[records.length-1])) : blankRecord();
+      syncCurrentWithConfig();
+      fillFormFromCurrent();
+      renderHistory();
+      markBackupDone();
+      showToast("Záloha importována ✓");
+    }catch(err){ showToast("Záloha má neočekávaný formát"); }
+    inputEl.value = "";
+  };
+  reader.readAsText(file);
+}
+
+function exportToDrive(){
+  if(!window.jspdf || !window.jspdf.jsPDF){ showToast("PDF knihovna se nenačetla — zkontroluj internet"); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:"mm", format:"a4" });
+  const text = buildAiText();
+  doc.setFont("courier","normal"); doc.setFontSize(10);
+  const lines = doc.splitTextToSize(text, 180);
+  let y = 15;
+  lines.forEach(line=>{
+    if(y>280){ doc.addPage(); y=15; }
+    doc.text(line, 15, y); y += 5;
+  });
+  const filename = `trenink_${current.meta.trainNum||'x'}_${(current.meta.date||'bezdata').replace(/\./g,'-')}.pdf`;
+  const blob = doc.output("blob");
+  const file = new File([blob], filename, {type:"application/pdf"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({ files:[file], title:"Trénink #"+(current.meta.trainNum||""), text:"Export tréninku" })
+      .then(()=> showToast("Otevřeno sdílení ✓"))
+      .catch(()=>{ /* zrušeno uživatelem, nic neděláme */ });
+  } else {
+    doc.save(filename);
+    showToast("PDF staženo — nahraj ho ručně do Disku");
+  }
+}
+
+function copyForAi(){
+  const text = buildAiText();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=> showToast("Zkopírováno do schránky ✓")).catch(()=> fallbackCopy(text));
+  } else fallbackCopy(text);
+}
+function fallbackCopy(text){
+  const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); showToast("Zkopírováno do schránky ✓"); } catch(e){ showToast("Zkopírování selhalo"); }
+  document.body.removeChild(ta);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+/* ============================================================
+   GRAF — vývoj síly a běžecké výkonnosti (Chart.js)
+   ============================================================ */
+let chartVolumeInstance=null, chartLiftsInstance=null, chartPaceInstance=null, chartWeightInstance=null, chartFatigueInstance=null, chartVo2maxInstance=null;
+function findExerciseById(id){
+  for(const g of CONFIG.groups){ const ex=g.exercises.find(e=>e.id===id); if(ex) return ex; }
+  return null;
+}
+function getSortedRecordsForChart(){
+  let allRecs = records.map(r=> r.id===current.id ? current : r);
+  if(!records.some(r=>r.id===current.id)) allRecs = [...allRecs, current];
+  return allRecs.slice().sort((a,b)=> (parseInt(a.meta.trainNum)||0)-(parseInt(b.meta.trainNum)||0));
+}
+function chartBaseOptions(unitLabel){
+  const isLight = document.body.getAttribute("data-theme")==="light";
+  const textColor = isLight ? "#1b1e23" : "#eceef0";
+  const gridColor = isLight ? "#dde1e7" : "#2a2f37";
+  return {
+    responsive:true,
+    plugins:{ legend:{ labels:{ color:textColor, font:{size:10} } } },
+    scales:{
+      x:{ ticks:{ color:textColor, font:{size:9} }, grid:{ color:gridColor } },
+      y:{ ticks:{ color:textColor, font:{size:9} }, grid:{ color:gridColor }, title:{ display:true, text:unitLabel, color:textColor } }
+    }
+  };
+}
+function renderChartView(){
+  document.getElementById("chartStrengthWrap").style.display = chartMode==="strength" ? "" : "none";
+  document.getElementById("chartRunWrap").style.display = chartMode==="run" ? "" : "none";
+  document.getElementById("chartBodyWrap").style.display = chartMode==="body" ? "" : "none";
+  if(typeof Chart === "undefined"){ showToast("Knihovna grafů se nenačetla — zkontroluj internet"); return; }
+  if(chartMode==="strength") renderStrengthCharts();
+  else if(chartMode==="run") renderRunCharts();
+  else renderBodyCharts();
+}
+function renderStrengthCharts(){
+  const recs = getSortedRecordsForChart().filter(r=> CONFIG.groups.some(g=> groupTotals(g,r).kgTotal>0 || groupTotals(g,r).reps>0));
+  const labels = recs.map(r=> "#"+(r.meta.trainNum||"?"));
+  const totals = recs.map(r=> CONFIG.groups.reduce((s,g)=> s+groupTotals(g,r).kgTotal, 0));
+  const benchEx = findExerciseById("e_bench"), dlEx = findExerciseById("e_deadlift");
+  const benchMax = recs.map(r=> benchEx ? (ladderMaxWeight(r.data[benchEx.id], benchEx.weights)||null) : null);
+  const dlMax = recs.map(r=> dlEx ? (ladderMaxWeight(r.data[dlEx.id], dlEx.weights)||null) : null);
+
+  if(chartVolumeInstance) chartVolumeInstance.destroy();
+  chartVolumeInstance = new Chart(document.getElementById("chartVolume").getContext("2d"), {
+    type:"bar",
+    data:{ labels, datasets:[{ label:"Celkem zvednuto (kg)", data: totals, backgroundColor:"#ff4a00" }] },
+    options: chartBaseOptions("kg")
+  });
+  if(chartLiftsInstance) chartLiftsInstance.destroy();
+  chartLiftsInstance = new Chart(document.getElementById("chartLifts").getContext("2d"), {
+    type:"line",
+    data:{ labels, datasets:[
+      { label:"Bench max (kg)", data: benchMax, borderColor:"#ff4a00", backgroundColor:"#ff4a00", tension:0.25, spanGaps:true },
+      { label:"Mrtvý tah max (kg)", data: dlMax, borderColor:"#f2b134", backgroundColor:"#f2b134", tension:0.25, spanGaps:true }
+    ]},
+    options: chartBaseOptions("kg")
+  });
+}
+function renderRunCharts(){
+  const entries = collectRuns().filter(e=>e.dt).slice().sort((a,b)=> a.dt-b.dt);
+  const labels = entries.map(e=> e.date);
+  const real = entries.map(e=> +e.realPace.toFixed(2));
+  const flat = entries.map(e=> +e.flatPace.toFixed(2));
+  if(chartPaceInstance) chartPaceInstance.destroy();
+  chartPaceInstance = new Chart(document.getElementById("chartPace").getContext("2d"), {
+    type:"line",
+    data:{ labels, datasets:[
+      { label:"Reálné tempo (min/km)", data: real, borderColor:"#e5484d", backgroundColor:"#e5484d", tension:0.25 },
+      { label:"Tempo na rovinu (min/km)", data: flat, borderColor:"#f2b134", backgroundColor:"#f2b134", tension:0.25 }
+    ]},
+    options: chartBaseOptions("min/km")
+  });
+
+  const vo2Entries = entries.filter(e=>e.vo2max);
+  if(chartVo2maxInstance) chartVo2maxInstance.destroy();
+  chartVo2maxInstance = new Chart(document.getElementById("chartVo2max").getContext("2d"), {
+    type:"line",
+    data:{ labels: vo2Entries.map(e=>e.date), datasets:[
+      { label:"VO2max (odhad)", data: vo2Entries.map(e=>parseFloat(e.vo2max)), borderColor:"#7ed957", backgroundColor:"#7ed957", tension:0.25 }
+    ]},
+    options: chartBaseOptions("ml/kg/min")
+  });
+}
+function renderBodyCharts(){
+  const isLight = document.body.getAttribute("data-theme")==="light";
+  const textColor = isLight ? "#1b1e23" : "#eceef0";
+  const gridColor = isLight ? "#dde1e7" : "#2a2f37";
+
+  const weightRecs = getSortedRecordsForChart().filter(r=> r.meta.weight);
+  const wLabels = weightRecs.map(r=> "#"+(r.meta.trainNum||"?"));
+  const wData = weightRecs.map(r=> parseFloat(r.meta.weight));
+  if(chartWeightInstance) chartWeightInstance.destroy();
+  chartWeightInstance = new Chart(document.getElementById("chartWeight").getContext("2d"), {
+    type:"line",
+    data:{ labels:wLabels, datasets:[{ label:"Váha (kg)", data:wData, borderColor:"#7ed957", backgroundColor:"#7ed957", tension:0.25 }] },
+    options: chartBaseOptions("kg")
+  });
+
+  const allRecs = getSortedRecordsForChart().filter(r=> r.meta.fatigue || r.meta.rpe || CONFIG.groups.some(g=>groupTotals(g,r).kgTotal>0));
+  const fLabels = allRecs.map(r=> "#"+(r.meta.trainNum||"?")+(r.meta.priorActivity?" 🔗":""));
+  const volumes = allRecs.map(r=> CONFIG.groups.reduce((s,g)=> s+groupTotals(g,r).kgTotal, 0));
+  const fatigues = allRecs.map(r=> r.meta.fatigue ? parseFloat(r.meta.fatigue) : null);
+  const rpes = allRecs.map(r=> r.meta.rpe ? parseFloat(r.meta.rpe) : null);
+  const barColors = allRecs.map(r=> r.meta.priorActivity ? "#f2b13488" : "#ff4a0088");
+  if(chartFatigueInstance) chartFatigueInstance.destroy();
+  chartFatigueInstance = new Chart(document.getElementById("chartFatigue").getContext("2d"), {
+    data:{ labels:fLabels, datasets:[
+      { type:"bar", label:"Objem (kg) · 🔗 = po jiné aktivitě", data:volumes, backgroundColor:barColors, yAxisID:"y" },
+      { type:"line", label:"Únava (1-10)", data:fatigues, borderColor:"#e5484d", backgroundColor:"#e5484d", yAxisID:"y1", tension:0.25, spanGaps:true },
+      { type:"line", label:"RPE (1-10)", data:rpes, borderColor:"#a970ff", backgroundColor:"#a970ff", yAxisID:"y1", tension:0.25, spanGaps:true, borderDash:[5,3] }
+    ]},
+    options:{
+      responsive:true,
+      plugins:{ legend:{ labels:{ color:textColor, font:{size:10} } } },
+      scales:{
+        x:{ ticks:{ color:textColor, font:{size:9} }, grid:{ color:gridColor } },
+        y:{ position:"left", ticks:{ color:textColor, font:{size:9} }, grid:{ color:gridColor }, title:{ display:true, text:"kg", color:textColor } },
+        y1:{ position:"right", min:0, max:10, ticks:{ color:textColor, font:{size:9} }, grid:{ display:false }, title:{ display:true, text:"únava 1-10", color:textColor } }
+      }
+    }
+  });
+}
+
+function init(){
+  loadTheme();
+  loadConfig(); loadSports(); loadRecords(); loadStopwatchAll(); loadPinned(); loadProfile(); loadBodyLog();
+  buildMetaGrid(); buildSuuntoGrid(); buildProfileGrid();
+
+  if(records.length){ current = JSON.parse(JSON.stringify(records[records.length-1])); }
+  else { current = blankRecord(); }
+  ensureSetLogs(current);
+  backfillSetLogsFromData(current);
+  syncCurrentWithConfig();
+
+  fillFormFromCurrent();
+  initStopwatchForCurrent();
+  refreshOpenHeights();
+
+  document.getElementById("recordManual").addEventListener("change", (e)=>{ current.recordManual = e.target.checked; scheduleAutosave(); });
+  document.getElementById("formView").addEventListener("input", scheduleAutosave);
+  document.getElementById("formView").addEventListener("change", scheduleAutosave);
+  window.addEventListener("resize", refreshOpenHeights);
+  checkBackupReminder();
+}
+init();
+
+if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
