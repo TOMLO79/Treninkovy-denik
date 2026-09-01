@@ -1687,7 +1687,12 @@ function attachSetInput(input, exId, weight){
   let timer = null;
   const tryCommit = ()=>{
     clearTimeout(timer);
-    if(input.value.trim()){ commitSet(exId, weight, input.value); input.value = ""; }
+    const val = input.value.trim();
+    if(!val) return;
+    // vyčistit hned, PŘED commitSet — přestavba (řazení nahoru) může vyvolat vnořený blur
+    // na stejném poli, a bez tohohle by se stejná hodnota zapsala dvakrát
+    input.value = "";
+    commitSet(exId, weight, val);
   };
   input.addEventListener("input", ()=>{ clearTimeout(timer); timer = setTimeout(tryCommit, 2500); });
   input.addEventListener("blur", tryCommit);
@@ -1966,10 +1971,11 @@ function refreshOpenHeights(){
    ============================================================ */
 function commitAllPendingSetInputs(){
   document.querySelectorAll(".set-input").forEach(inp=>{
-    if(inp.value && inp.value.trim()){
+    const val = inp.value && inp.value.trim();
+    if(val){
       const weight = inp.dataset.weight === "" ? undefined : inp.dataset.weight;
-      commitSet(inp.dataset.ex, weight, inp.value);
       inp.value = "";
+      commitSet(inp.dataset.ex, weight, val);
     }
   });
 }
