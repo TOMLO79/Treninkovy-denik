@@ -187,6 +187,11 @@
   .grand-total .g-lbl{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;}
   .grand-total .g-val{font-family:var(--mono);font-weight:800;font-size:2rem;color:var(--accent);line-height:1.2;}
   .grand-total .g-sub{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+  .g-split{margin-top:10px;}
+  .g-split-bar{height:8px;border-radius:5px;overflow:hidden;background:var(--accent);display:flex;}
+  .g-split-legs{background:#f2b134;height:100%;}
+  .g-split-row{display:flex;justify-content:space-between;font-size:0.75rem;color:var(--muted);margin-top:5px;}
+  .g-split-row b{font-family:var(--mono);color:var(--text);}
 
   .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .summary-card{background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:11px 8px;text-align:left;}
@@ -388,6 +393,7 @@
             <div class="g-lbl">Celkem zvednuto</div>
             <div class="g-val" id="grandTotal">0 kg</div>
             <div class="g-sub" id="grandTotalSub"></div>
+            <div class="g-split" id="grandSplit"></div>
           </div>
           <div class="summary-grid" id="summaryGrid"></div>
           <div id="prBanner" style="display:none" class="pr-banner">🏆 <span id="prText"></span></div>
@@ -492,7 +498,8 @@
     </div>
     <div id="chartStrengthWrap">
       <div class="section"><div class="section-body-inner">
-        <div class="subgroup-title" style="margin-top:0">Celkový objem za trénink (kg)</div>
+        <div class="subgroup-title" style="margin-top:0">Objem za trénink (kg) — nohy vs. vrch těla</div>
+        <div class="section-note" style="margin-top:0">Skládaný sloupec — dole vrch těla (síla+OH press+core), nahoře nohy.</div>
         <canvas id="chartVolume" height="190"></canvas>
       </div></div>
       <div class="section"><div class="section-body-inner">
@@ -582,6 +589,7 @@
       <p class="help-p"><b>Cviky ve skupinách</b> — klepni na skupinu (Bench, Core, Nohy...) a rozbalí se. Ke každému cviku je teď malé vstupní pole "+" na jednu sérii — napíšeš číslo, po ~2,5s ticha (nebo klepnutím jinam / Enterem) se série uloží s přesným časem a pole se vyprázdní na další. Uložené série vidíš jako malé "kostičky" vedle názvu, čas poslední série je vpravo. Tužtičkou ✏️ otevřeš editaci — tam vidíš čas každé série zvlášť, můžeš opravit hodnotu nebo sérii smazat 🗑. Tímto appka sbírá skutečná časová razítka ke každé sérii, ne jen odhad — časem z toho půjde počítat trend výkonu/RPE v průběhu tréninku.</p>
       <p class="help-p"><b>Suunto sken</b> — v sekci "Suunto metriky" nebo přímo u konkrétního sportu je tlačítko na vyfocení/vybrání screenshotu z hodinek. Appka automaticky vytáhne TF, TSS, tempo, převýšení, kadenci, VO2max atd.</p>
       <p class="help-p"><b>Ukládání</b> — appka ukládá automaticky (2,5s po poslední změně, malá tichá "✓ auto" hláška), nemusíš nic mačkat. Tlačítko "Uložit" dole je pro jistotu / okamžité uložení.</p>
+      <p class="help-p"><b>📊 Souhrn</b> — pod "Celkem zvednuto" je teď i pruh a čísla 🦵 Nohy vs. 💪 Vrch těla — nohy (dřepy, výpony) do objemu počítají i vlastní váhu, takže dost snadno "přebijí" zbytek, tenhle rozpad ti ukáže, jak moc.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
@@ -611,7 +619,7 @@
 
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">📊 Graf</div>
-      <p class="help-p"><b>Síla</b> — vývoj objemu (kg) a maximálních vah u klíčových cviků. <b>Běh</b> — tempo v čase a vývoj VO2max. <b>Tělo</b> — váha v čase a "Výkon vs. únava a RPE" (objem tréninku jako sloupce, únava a RPE jako čáry — ukáže ti, jestli podáváš stejný výkon za rostoucí, nebo naopak klesající "cenu").</p>
+      <p class="help-p"><b>Síla</b> — vývoj objemu (kg, rozdělený na nohy vs. vrch těla — nohy díky vlastní váze objem hodně nafukují, tak je fajn je vidět zvlášť) a maximálních vah u klíčových cviků. <b>Běh</b> — tempo v čase a vývoj VO2max. <b>Tělo</b> — váha v čase a "Výkon vs. únava a RPE" (objem tréninku jako sloupce, únava a RPE jako čáry — ukáže ti, jestli podáváš stejný výkon za rostoucí, nebo naopak klesající "cenu").</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
@@ -1896,10 +1904,11 @@ function historicalMaxForExercise(exId, weights, excludeId){
 
 function updateSummaryDynamic(){
   const grid = document.getElementById("summaryGrid");
-  let grandFree=0, grandBody=0, grandSets=0;
+  let grandFree=0, grandBody=0, grandSets=0, legsKg=0, upperKg=0;
   grid.innerHTML = CONFIG.groups.map(g=>{
     const t = groupTotals(g, current);
     grandFree += t.kgFree; grandBody += t.kgBody; grandSets += t.sets;
+    if(g.id==="g_legs") legsKg += t.kgTotal; else upperKg += t.kgTotal;
     const hasLadder = g.exercises.some(e=>e.type==="ladder");
     const hasBody = g.exercises.some(e=>e.type==="bodyweight");
     const hasSingle = g.exercises.some(e=>e.type==="single");
@@ -1916,6 +1925,17 @@ function updateSummaryDynamic(){
   const grandTotal = grandFree + grandBody;
   document.getElementById("grandTotal").textContent = grandTotal + " kg";
   document.getElementById("grandTotalSub").textContent = `váhy činky ${grandFree}kg + vlastní váha ${grandBody}kg · ${grandSets} sérií celkem`;
+  const splitHost = document.getElementById("grandSplit");
+  if(splitHost){
+    if(grandTotal>0){
+      const legsPct = Math.round(legsKg/grandTotal*100);
+      splitHost.innerHTML = `
+        <div class="g-split-bar"><span class="g-split-legs" style="width:${legsPct}%"></span></div>
+        <div class="g-split-row"><span>🦵 Nohy: <b>${Math.round(legsKg).toLocaleString("cs-CZ")} kg</b></span><span>💪 Vrch těla: <b>${Math.round(upperKg).toLocaleString("cs-CZ")} kg</b></span></div>`;
+    } else {
+      splitHost.innerHTML = "";
+    }
+  }
 
   let prMsgs = [];
   CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{
@@ -3104,16 +3124,21 @@ function renderChartView(){
 function renderStrengthCharts(){
   const recs = getSortedRecordsForChart().filter(r=> CONFIG.groups.some(g=> groupTotals(g,r).kgTotal>0 || groupTotals(g,r).reps>0));
   const labels = recs.map(r=> "#"+(r.meta.trainNum||"?"));
-  const totals = recs.map(r=> CONFIG.groups.reduce((s,g)=> s+groupTotals(g,r).kgTotal, 0));
+  const legsTotals = recs.map(r=> CONFIG.groups.filter(g=>g.id==="g_legs").reduce((s,g)=> s+groupTotals(g,r).kgTotal, 0));
+  const upperTotals = recs.map(r=> CONFIG.groups.filter(g=>g.id!=="g_legs").reduce((s,g)=> s+groupTotals(g,r).kgTotal, 0));
   const benchEx = findExerciseById("e_bench"), dlEx = findExerciseById("e_deadlift");
   const benchMax = recs.map(r=> benchEx ? (ladderMaxWeight(r.data[benchEx.id], benchEx.weights)||null) : null);
   const dlMax = recs.map(r=> dlEx ? (ladderMaxWeight(r.data[dlEx.id], dlEx.weights)||null) : null);
 
   if(chartVolumeInstance) chartVolumeInstance.destroy();
+  const baseOpts = chartBaseOptions("kg");
   chartVolumeInstance = new Chart(document.getElementById("chartVolume").getContext("2d"), {
     type:"bar",
-    data:{ labels, datasets:[{ label:"Celkem zvednuto (kg)", data: totals, backgroundColor:"#ff4a00" }] },
-    options: chartBaseOptions("kg")
+    data:{ labels, datasets:[
+      { label:"Vrch těla (kg)", data: upperTotals, backgroundColor:"#ff4a00", stack:"vol" },
+      { label:"Nohy (kg)", data: legsTotals, backgroundColor:"#f2b134", stack:"vol" }
+    ]},
+    options: { ...baseOpts, scales:{ x:{...baseOpts.scales.x, stacked:true}, y:{...baseOpts.scales.y, stacked:true} } }
   });
   if(chartLiftsInstance) chartLiftsInstance.destroy();
   chartLiftsInstance = new Chart(document.getElementById("chartLifts").getContext("2d"), {
