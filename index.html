@@ -2022,7 +2022,7 @@ function loadRecord(id){
   SPORTS.sports.forEach(sp=> ensureSportData(current, sp));
   switchTab("form"); fillFormFromCurrent(); initStopwatchForCurrent(); refreshOpenHeights();
 }
-function showToast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),1800); }
+function showToast(msg, duration){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(showToast._t); showToast._t = setTimeout(()=>t.classList.remove("show"), duration||1800); }
 
 /* ============================================================
    TABS
@@ -2890,10 +2890,15 @@ function exportBackup(){
   const blob = new Blob([JSON.stringify(backup, null, 2)], {type:"application/json"});
   const file = new File([blob], filename, {type:"application/json"});
   markBackupDone();
-  if(navigator.canShare && navigator.canShare({files:[file]})){
+  if(navigator.share){
+    // Nezjišťujeme dopředu přes canShare() — bývá zbytečně přísný a umí odmítnout i soubory,
+    // které by se sdílet daly. Radši rovnou zkusíme share() a na chybu reagujeme stažením.
     navigator.share({ files:[file], title:"Záloha tréninkového deníku" })
       .then(()=> showToast("Sdíleno ✓"))
-      .catch(()=>{ downloadBlob(blob, filename); });
+      .catch((err)=>{
+        if(err && err.name === "AbortError") return; // uživatel sdílení sám zrušil, nic neděláme
+        downloadBlob(blob, filename);
+      });
   } else {
     downloadBlob(blob, filename);
   }
@@ -2904,7 +2909,7 @@ function downloadBlob(blob, filename){
   a.href = url; a.download = filename; document.body.appendChild(a); a.click();
   document.body.removeChild(a);
   setTimeout(()=> URL.revokeObjectURL(url), 2000);
-  showToast("Záloha stažena");
+  showToast("Záloha stažena do telefonu (Stažené soubory) — do Disku ji nahraješ ručně přes appku Disk", 4000);
 }
 function importBackupFile(inputEl){
   const file = inputEl.files[0]; if(!file) return;
