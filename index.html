@@ -398,9 +398,7 @@
 
   <!-- ============ HISTORY VIEW ============ -->
   <div id="histView" style="display:none">
-    <div id="histList"></div>
-    <div id="histEmpty" class="empty-state" style="display:none"><div class="ic">📭</div><div>Zatím žádné uložené tréninky.</div></div>
-    <div class="section" style="margin-top:16px">
+    <div class="section" style="margin-bottom:16px">
       <div class="section-body-inner" style="padding:16px">
         <div class="subgroup-title" style="margin-top:0">💾 Záloha dat</div>
         <div class="section-note" style="margin-top:0">Stáhni si zálohu všech tréninků, cviků, sportů a nastavení do jednoho souboru. Po aktualizaci appky (nová verze HTML) ji stejným tlačítkem zpátky nahraješ — data se automaticky sloučí s tím, co už v telefonu máš. "Na Disk" rovnou otevře nabídku uložit/otevřít v Google Disku (na telefonu se nabídne mezi možnostmi sdílení/výběru souboru).</div>
@@ -415,6 +413,8 @@
         <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importBackupFile(this)">
       </div>
     </div>
+    <div id="histList"></div>
+    <div id="histEmpty" class="empty-state" style="display:none"><div class="ic">📭</div><div>Zatím žádné uložené tréninky.</div></div>
   </div>
 
   <!-- ============ CVIKY / CONFIG VIEW ============ -->
@@ -619,7 +619,7 @@
 
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">💾 Záloha dat</div>
-      <p class="help-p">Dole v Historii je "💾 Záloha dat" — Export (uloží JSON zálohu) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené i tělesné míry a fotky z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
+      <p class="help-p">Nahoře v Historii je "💾 Záloha dat" — Export (uloží JSON zálohu) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené i tělesné míry a fotky z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
     </div></div>
   </div>
 
