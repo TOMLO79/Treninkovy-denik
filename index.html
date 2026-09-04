@@ -547,8 +547,6 @@
           <div class="field"><label>Paže (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_arm" placeholder="cm"></div>
           <div class="field"><label>Stehno (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_thigh" placeholder="cm"></div>
           <div class="field"><label>Boky (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_hip" placeholder="cm"></div>
-          <div class="field"><label>TK systola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bodyMetric_bpSys" placeholder="např. 128"></div>
-          <div class="field"><label>TK diastola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bodyMetric_bpDia" placeholder="např. 82"></div>
         </div>
         <div class="field"><label>Poznámka</label><input type="text" id="bodyLogNote" placeholder="volitelné"></div>
         <div class="field">
@@ -560,8 +558,27 @@
         <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addBodyLogEntry()"><span class="ic">💾</span>Přidat záznam</button>
       </div>
       <canvas id="chartBodyMetrics" height="190" style="margin-top:16px"></canvas>
-      <canvas id="chartBloodPressure" height="190" style="margin-top:16px;display:none"></canvas>
       <div id="bodyLogList" style="margin-top:14px"></div>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">🩺 Tlak a tep</div>
+      <div class="section-note" style="margin-top:0">Krevní tlak a tep — samostatný log s vlastním datem i časem (klidně víckrát denně). Měř ideálně vždy ve stejnou dobu a v klidu, ať je trend srovnatelný.</div>
+      <div class="bodylog-form">
+        <div class="bodylog-metric-grid">
+          <div class="field"><label>Datum</label><input type="date" id="bpDate"></div>
+          <div class="field"><label>Čas</label><input type="time" id="bpTime"></div>
+        </div>
+        <button type="button" class="btn-mini" style="width:100%" onclick="fillBpNow()">🕒 Nyní (vyplnit datum i čas)</button>
+        <div class="bodylog-metric-grid" style="margin-top:10px">
+          <div class="field"><label>Systola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bpSysInput" placeholder="např. 128"></div>
+          <div class="field"><label>Diastola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bpDiaInput" placeholder="např. 82"></div>
+          <div class="field"><label>Tep (bpm)</label><input type="number" step="1" inputmode="numeric" id="bpPulseInput" placeholder="např. 68"></div>
+        </div>
+        <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addBpEntry()"><span class="ic">💾</span>Přidat záznam</button>
+      </div>
+      <canvas id="chartBloodPressure" height="190" style="margin-top:16px;display:none"></canvas>
+      <div id="bpList" style="margin-top:14px"></div>
     </div></div>
   </div>
 
@@ -614,12 +631,13 @@
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">🧍 Profil</div>
       <p class="help-p">Výška, datum narození, pohlaví, klidová TF — appka z toho spočítá věk, BMI (s pásmy podváha/normální/nadváha/obezita), BMR, odhad denní kalorické potřeby a tréninkové zóny tepové frekvence. Váha se bere automaticky z posledního tréninku.</p>
-      <p class="help-p"><b>📏 Tělesné míry a fotky</b> — nezávislý periodický log (nemusíš vyplňovat každý trénink, stačí třeba jednou za 1–2 týdny). Zapíšeš obvody (pas, hrudník, paže, stehno, boky), krevní tlak (systola/diastola — měř ideálně vždy ve stejnou denní dobu a v klidu, ať je trend srovnatelný) a/nebo přidáš fotky postavy — jeden záznam může mít víc fotek najednou (např. zezadu/zboku/zepředu), appka je sama zmenší a zkomprimuje, ať zbytečně nezabírají místo. Dole vidíš graf vývoje obvodů a chronologický seznam všech záznamů s náhledy fotek (klepnutím na náhled se otevře na celou obrazovku, křížkem u fotky smažeš jen tu jednu fotku). Tužtičkou ✏️ u záznamu jde kdykoliv zpětně opravit datum, míry i poznámku, fotky přitom zůstanou — nemusíš kvůli překlepu mazat celý záznam. Pozor: appka data ukládá jen v telefonu (localStorage), který má omezenou kapacitu — pokud by nešlo uložit další fotku, appka tě na to upozorní; pomůže smazat pár starších fotek nebo použít Zálohu (viz níže), která fotky/míry taky obsahuje.</p>
+      <p class="help-p"><b>📏 Tělesné míry a fotky</b> — nezávislý periodický log (nemusíš vyplňovat každý trénink, stačí třeba jednou za 1–2 týdny). Zapíšeš obvody (pas, hrudník, paže, stehno, boky) a/nebo přidáš fotky postavy — jeden záznam může mít víc fotek najednou (např. zezadu/zboku/zepředu), appka je sama zmenší a zkomprimuje, ať zbytečně nezabírají místo. Dole vidíš graf vývoje obvodů a chronologický seznam všech záznamů s náhledy fotek (klepnutím na náhled se otevře na celou obrazovku, křížkem u fotky smažeš jen tu jednu fotku). Tužtičkou ✏️ u záznamu jde kdykoliv zpětně opravit datum, míry i poznámku, fotky přitom zůstanou — nemusíš kvůli překlepu mazat celý záznam. Pozor: appka data ukládá jen v telefonu (localStorage), který má omezenou kapacitu — pokud by nešlo uložit další fotku, appka tě na to upozorní; pomůže smazat pár starších fotek nebo použít Zálohu (viz níže), která fotky/míry taky obsahuje.</p>
+      <p class="help-p"><b>🩺 Tlak a tep</b> — samostatný log, oddělený od Tělesných měr, protože se měří jinak často (klidně víckrát denně) a je u něj důležitý i přesný čas, ne jen datum. Tlačítko "🕒 Nyní" rovnou vyplní aktuální datum i čas, ať to nemusíš přepisovat ručně — datum/čas si ale klidně uprav, pokud zapisuješ zpětně. Zapíšeš systolu, diastolu a/nebo tep — stačí i jen některé z nich. Měř ideálně vždy ve stejnou dobu a v klidu (ne hned po tréninku), ať je trend mezi měřeními srovnatelný. Graf i tužtička na zpětnou editaci fungují stejně jako u Tělesných měr.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">💾 Záloha dat</div>
-      <p class="help-p">Nahoře v Historii je "💾 Záloha dat" — Export (uloží zálohu jako soubor .txt — je to čitelný text/JSON, appka si s tím poradí, jen kvůli spolehlivějšímu sdílení na Androidu nemá příponu .json) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává, appka přijme jak .txt, tak i starší .json soubory). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené i tělesné míry a fotky z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
+      <p class="help-p">Nahoře v Historii je "💾 Záloha dat" — Export (uloží zálohu jako soubor .txt — je to čitelný text/JSON, appka si s tím poradí, jen kvůli spolehlivějšímu sdílení na Androidu nemá příponu .json) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává, appka přijme jak .txt, tak i starší .json soubory). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené, tělesné míry a fotky i tlak/tep z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
     </div></div>
   </div>
 
@@ -643,6 +661,7 @@ const RECORDS_KEY = "trenink_records_v3";
 const PINNED_KEY = "trenink_pinned_v1";
 const PROFILE_KEY = "trenink_profile_v1";
 const BODYLOG_KEY = "trenink_bodylog_v1";
+const BPLOG_KEY = "trenink_bplog_v1";
 const OLD_RECORDS_KEY_V2 = "trenink_records_v2";
 const OLD_RECORDS_KEY_V1 = "trenink_records_v1";
 
@@ -1092,10 +1111,9 @@ const BODY_METRIC_FIELDS = [
   {k:"arm",   label:"Paže (cm)"},
   {k:"thigh", label:"Stehno (cm)"},
   {k:"hip",   label:"Boky (cm)"},
-  {k:"bpSys", label:"TK systola (mmHg)"},
-  {k:"bpDia", label:"TK diastola (mmHg)"},
 ];
 let bodyLog = [];
+let bpLog = [];
 let pendingBodyPhotos = [];
 function loadBodyLog(){
   try{ bodyLog = JSON.parse(localStorage.getItem(BODYLOG_KEY)) || []; }catch(e){ bodyLog = []; }
@@ -1104,10 +1122,111 @@ function loadBodyLog(){
     if(e.photo && !e.photos){ e.photos = [e.photo]; delete e.photo; }
     if(!e.photos) e.photos = [];
   });
+  // jednorázová migrace: tlak/tep bývaly součástí Tělesných měr — přesuneme je do vlastního logu
+  try{ bpLog = JSON.parse(localStorage.getItem(BPLOG_KEY)) || []; }catch(e){ bpLog = []; }
+  let migrated = false;
+  bodyLog.forEach(e=>{
+    if(e.bpSys!=null || e.bpDia!=null){
+      bpLog.push({ id: Date.now()+Math.floor(Math.random()*1000), date: e.date, time:"", bpSys: e.bpSys, bpDia: e.bpDia });
+      delete e.bpSys; delete e.bpDia;
+      migrated = true;
+    }
+  });
+  if(migrated){ persistBpLog(); persistBodyLog(); }
 }
 function persistBodyLog(){
   try{ localStorage.setItem(BODYLOG_KEY, JSON.stringify(bodyLog)); return true; }
   catch(e){ return false; }
+}
+function persistBpLog(){
+  try{ localStorage.setItem(BPLOG_KEY, JSON.stringify(bpLog)); return true; }
+  catch(e){ return false; }
+}
+function fillBpNow(){
+  const now = new Date();
+  const d = document.getElementById("bpDate"), t = document.getElementById("bpTime");
+  if(d) d.value = now.toISOString().slice(0,10);
+  if(t) t.value = String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+}
+function clearBpForm(){
+  ["bpSysInput","bpDiaInput","bpPulseInput"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  const d = document.getElementById("bpDate"); if(d) d.value = "";
+  const t = document.getElementById("bpTime"); if(t) t.value = "";
+}
+function addBpEntry(){
+  const date = document.getElementById("bpDate").value || new Date().toISOString().slice(0,10);
+  const time = document.getElementById("bpTime").value || "";
+  const sys = document.getElementById("bpSysInput").value;
+  const dia = document.getElementById("bpDiaInput").value;
+  const pulse = document.getElementById("bpPulseInput").value;
+  if(!sys && !dia && !pulse){ showToast("Vyplň aspoň jednu hodnotu (systola, diastola nebo tep)"); return; }
+  const entry = { id: Date.now(), date, time };
+  if(sys!=="") entry.bpSys = parseFloat(sys);
+  if(dia!=="") entry.bpDia = parseFloat(dia);
+  if(pulse!=="") entry.pulse = parseFloat(pulse);
+  bpLog.push(entry);
+  sortBpLog();
+  persistBpLog();
+  clearBpForm();
+  renderBpList();
+  renderBloodPressureChart();
+  showToast("Záznam přidán");
+}
+function sortBpLog(){ bpLog.sort((a,b)=> (a.date+"T"+(a.time||"00:00")).localeCompare(b.date+"T"+(b.time||"00:00"))); }
+let editingBpId = null;
+function toggleBpEdit(id){ editingBpId = editingBpId===id ? null : id; renderBpList(); }
+function saveBpEdit(id){
+  const e = bpLog.find(x=>x.id===id); if(!e) return;
+  const dEl = document.getElementById("bpEditDate_"+id); if(dEl && dEl.value) e.date = dEl.value;
+  const tEl = document.getElementById("bpEditTime_"+id); if(tEl) e.time = tEl.value || "";
+  const sEl = document.getElementById("bpEditSys_"+id); if(sEl){ if(sEl.value!=="") e.bpSys=parseFloat(sEl.value); else delete e.bpSys; }
+  const diEl = document.getElementById("bpEditDia_"+id); if(diEl){ if(diEl.value!=="") e.bpDia=parseFloat(diEl.value); else delete e.bpDia; }
+  const pEl = document.getElementById("bpEditPulse_"+id); if(pEl){ if(pEl.value!=="") e.pulse=parseFloat(pEl.value); else delete e.pulse; }
+  sortBpLog();
+  persistBpLog();
+  editingBpId = null;
+  renderBpList();
+  renderBloodPressureChart();
+  showToast("Záznam upraven");
+}
+function deleteBpEntry(id){
+  if(!confirm("Smazat tento záznam tlaku/tepu?")) return;
+  bpLog = bpLog.filter(x=>x.id!==id);
+  persistBpLog();
+  renderBpList();
+  renderBloodPressureChart();
+}
+function renderBpList(){
+  const host = document.getElementById("bpList");
+  if(!host) return;
+  if(bpLog.length===0){ host.innerHTML = `<div class="section-note">Zatím žádné záznamy.</div>`; return; }
+  const sorted = [...bpLog].sort((a,b)=> (b.date+"T"+(b.time||"00:00")).localeCompare(a.date+"T"+(a.time||"00:00")));
+  host.innerHTML = sorted.map(e=>{
+    const parts = [];
+    if(e.bpSys!=null || e.bpDia!=null) parts.push(`TK ${e.bpSys??"?"}/${e.bpDia??"?"} mmHg`);
+    if(e.pulse!=null) parts.push(`Tep ${e.pulse} bpm`);
+    return `<div class="bodylog-row-wrap">
+      <div class="bodylog-row">
+        <div class="bodylog-info">
+          <div class="bodylog-date">${formatDateDisplay(e.date)}${e.time?' · '+e.time:''}</div>
+          <div class="bodylog-metrics">${parts.join(" · ")||"–"}</div>
+        </div>
+        <button type="button" class="bodylog-edit" onclick="toggleBpEdit(${e.id})" title="Upravit">✏️</button>
+        <button type="button" class="bodylog-del" onclick="deleteBpEntry(${e.id})">🗑</button>
+      </div>
+      ${editingBpId===e.id ? `
+      <div class="bodylog-edit-panel">
+        <div class="measure-fields">
+          <div class="measure-field"><label>Datum</label><input type="date" id="bpEditDate_${e.id}" value="${e.date||''}"></div>
+          <div class="measure-field"><label>Čas</label><input type="time" id="bpEditTime_${e.id}" value="${e.time||''}"></div>
+          <div class="measure-field"><label>Systola</label><input type="number" step="1" inputmode="numeric" id="bpEditSys_${e.id}" value="${e.bpSys??''}"></div>
+          <div class="measure-field"><label>Diastola</label><input type="number" step="1" inputmode="numeric" id="bpEditDia_${e.id}" value="${e.bpDia??''}"></div>
+          <div class="measure-field"><label>Tep (bpm)</label><input type="number" step="1" inputmode="numeric" id="bpEditPulse_${e.id}" value="${e.pulse??''}"></div>
+        </div>
+        <button type="button" class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="saveBpEdit(${e.id})">💾 Uložit úpravu</button>
+      </div>` : ""}
+    </div>`;
+  }).join("");
 }
 function handleBodyPhotoPick(inputEl, previewHostId){
   const files = inputEl.files ? Array.from(inputEl.files) : [];
@@ -1225,10 +1344,7 @@ function renderBodyLogList(){
   if(bodyLog.length===0){ host.innerHTML = `<div class="section-note">Zatím žádné záznamy. Přidej první měření výše — stačí i jen jedna hodnota nebo fotka.</div>`; return; }
   const sorted = [...bodyLog].sort((a,b)=> (b.date||"").localeCompare(a.date||""));
   host.innerHTML = sorted.map(e=>{
-    const cmMetrics = BODY_METRIC_FIELDS.filter(f=> !f.k.startsWith("bp") && e[f.k]!=null).map(f=> f.label.split(" ")[0]+" "+e[f.k]+"cm");
-    const bpParts = [];
-    if(e.bpSys!=null || e.bpDia!=null) bpParts.push(`TK ${e.bpSys??"?"}/${e.bpDia??"?"} mmHg`);
-    const metrics = [...cmMetrics, ...bpParts].join(" · ");
+    const metrics = BODY_METRIC_FIELDS.filter(f=> e[f.k]!=null).map(f=> f.label.split(" ")[0]+" "+e[f.k]+"cm").join(" · ");
     const photos = e.photos || [];
     const thumbs = photos.length
       ? `<div class="bodylog-thumbs">${photos.map((p,i)=>`
@@ -1267,20 +1383,21 @@ function renderBodyMetricsChart(){
   const sorted = [...bodyLog].filter(e=>e.date).sort((a,b)=> (a.date||"").localeCompare(b.date||""));
   const labels = sorted.map(e=> formatDateDisplay(e.date));
   const colors = {waist:"#e5484d", chest:"#4a9eff", arm:"#f2b134", thigh:"#7ed957", hip:"#a970ff"};
-  const datasets = BODY_METRIC_FIELDS.filter(f=> !f.k.startsWith("bp") && sorted.some(e=>e[f.k]!=null)).map(f=>({
+  const datasets = BODY_METRIC_FIELDS.filter(f=> sorted.some(e=>e[f.k]!=null)).map(f=>({
     label: f.label, data: sorted.map(e=> e[f.k]!=null ? e[f.k] : null), borderColor: colors[f.k], backgroundColor: colors[f.k], tension:0.25, spanGaps:true
   }));
   if(chartBodyMetricsInstance){ chartBodyMetricsInstance.destroy(); chartBodyMetricsInstance = null; }
   canvas.style.display = datasets.length ? "" : "none";
   if(!datasets.length) return;
   chartBodyMetricsInstance = new Chart(canvas.getContext("2d"), { type:"line", data:{ labels, datasets }, options: chartBaseOptions("cm") });
-  renderBloodPressureChart(sorted, labels);
 }
 let chartBpInstance = null;
-function renderBloodPressureChart(sorted, labels){
+function renderBloodPressureChart(){
   const canvas = document.getElementById("chartBloodPressure");
   if(!canvas) return;
-  const hasAny = sorted.some(e=> e.bpSys!=null || e.bpDia!=null);
+  const sorted = [...bpLog].filter(e=>e.date).sort((a,b)=> (a.date+"T"+(a.time||"00:00")).localeCompare(b.date+"T"+(b.time||"00:00")));
+  const labels = sorted.map(e=> formatDateDisplay(e.date)+(e.time?" "+e.time:""));
+  const hasAny = sorted.length>0;
   if(chartBpInstance){ chartBpInstance.destroy(); chartBpInstance = null; }
   canvas.style.display = hasAny ? "" : "none";
   if(!hasAny) return;
@@ -1288,9 +1405,10 @@ function renderBloodPressureChart(sorted, labels){
     type:"line",
     data:{ labels, datasets:[
       { label:"Systola", data: sorted.map(e=> e.bpSys ?? null), borderColor:"#e5484d", backgroundColor:"#e5484d", tension:0.25, spanGaps:true },
-      { label:"Diastola", data: sorted.map(e=> e.bpDia ?? null), borderColor:"#4a9eff", backgroundColor:"#4a9eff", tension:0.25, spanGaps:true }
+      { label:"Diastola", data: sorted.map(e=> e.bpDia ?? null), borderColor:"#4a9eff", backgroundColor:"#4a9eff", tension:0.25, spanGaps:true },
+      { label:"Tep", data: sorted.map(e=> e.pulse ?? null), borderColor:"#7ed957", backgroundColor:"#7ed957", tension:0.25, spanGaps:true, borderDash:[5,3] }
     ]},
-    options: chartBaseOptions("mmHg")
+    options: chartBaseOptions("mmHg / bpm")
   });
 }
 function buildProfileGrid(){
@@ -1366,6 +1484,8 @@ function renderProfileView(){
   if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
   renderBodyLogList();
   renderBodyMetricsChart();
+  renderBpList();
+  renderBloodPressureChart();
   const statsHost = document.getElementById("profileStats");
   const age = getAge();
   const bmi = calcBMI();
@@ -2894,7 +3014,7 @@ function backupFromBanner(){
 }
 
 function exportBackup(){
-  const backup = { exportedAt: new Date().toISOString(), appVersion: 7, config: CONFIG, sports: SPORTS, records: records, profile: PROFILE, pinned: pinnedRows, bodyLog: bodyLog };
+  const backup = { exportedAt: new Date().toISOString(), appVersion: 7, config: CONFIG, sports: SPORTS, records: records, profile: PROFILE, pinned: pinnedRows, bodyLog: bodyLog, bpLog: bpLog };
   const json = JSON.stringify(backup, null, 2);
   const filename = `trenink_zaloha_${new Date().toISOString().slice(0,10)}.txt`;
   const blob = new Blob([json], {type:"text/plain"});
@@ -2947,6 +3067,12 @@ function importBackupFile(inputEl){
         data.bodyLog.forEach(e=>{ if(!existingIds.has(e.id)) bodyLog.push(e); });
         bodyLog.sort((a,b)=> (a.date||"").localeCompare(b.date||""));
         persistBodyLog();
+      }
+      if(data.bpLog && Array.isArray(data.bpLog)){
+        const existingBpIds = new Set(bpLog.map(e=>e.id));
+        data.bpLog.forEach(e=>{ if(!existingBpIds.has(e.id)) bpLog.push(e); });
+        sortBpLog();
+        persistBpLog();
       }
       if(data.records && Array.isArray(data.records)){
         const byId = {}; records.forEach(r=> byId[r.id]=r);
