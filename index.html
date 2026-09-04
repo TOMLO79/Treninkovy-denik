@@ -2789,8 +2789,17 @@ async function scanSuuntoImage(inputEl, targetSportId){
     const tssVal = extractLabeledLineValue(text, /TSS/i, "last");
     const kmMatch = text.match(/(\d{1,3}[.,]\d{1,2})\s*km/i);
     const tempoMatch = text.match(/(\d{1,2})['′](\d{1,2})\s*\/\s*km/i);
-    const cadenceMatch = text.match(/(\d{2,3})\s*krok/i);
-    const vo2max = extractLabeledLineValue(text, /Odhad\s*VO.{0,2}Max/i, "first");
+    // Vyžadujeme "/min" u kadence — bez toho appka občas omylem chytila číslo z VO2max
+    // (Suunto zalamuje popisky "Odhad VO2Max" a "Prům. kadence" na stejný řádek karty,
+    // takže hodnota VO2max se může ocitnout na řádku se zbytkem slova "kroku" bez "/min").
+    const cadenceMatch = text.match(/(\d{2,3})\s*krok\w*\s*\/\s*min/i);
+    let vo2max = extractLabeledLineValue(text, /Odhad\s*VO.{0,2}Max/i, "first");
+    // Sanity oprava: Suunto VO2max je vždy formát X.X/XX.X (jedno desetinné místo). Pokud OCR
+    // desetinnou tečku úplně "sní" (např. "46.1" přečte jako "461"), vyjde nesmyslně vysoké číslo
+    // — reálné VO2max se nikdy nedostane na 100+. V tom případě tečku vrátíme před poslední číslici.
+    if(vo2max && !vo2max.includes(".") && !vo2max.includes(",") && vo2max.length>=3 && parseInt(vo2max,10)>=100){
+      vo2max = vo2max.slice(0,-1) + "." + vo2max.slice(-1);
+    }
     const elevMatch = text.match(/(\d{1,4})\s*m\b/); // kotveno na jednotku "m", ne na popisek (ten bývá na jiném řádku)
     const durationStr = extractSuuntoDuration(text);
     let filled = [];
