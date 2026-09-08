@@ -678,7 +678,7 @@ const OLD_RECORDS_KEY_V1 = "trenink_records_v1";
 
 function defaultConfig(){
   return {
-    version: 9,
+    version: 10,
     groups: [
       { id:"g_strength", icon:"🏋️", title:"Hlavní síla", exercises:[
         { id:"e_bench", label:"Bench", type:"ladder", weights:[40,45,50,55,60,65,70,75,80,85,90,95,100], muscle:"chest", secondary:["triceps","shoulders"] },
@@ -707,15 +707,15 @@ function defaultConfig(){
         { id:"e_wrist_roller", label:"Posilovací kolečko na zápěstí", type:"single", muscle:"forearms" }
       ]},
       { id:"g_core", icon:"🧘", title:"Core", exercises:[
-        { id:"e_core_zdvih", label:"Zdvih nohou v leže", type:"single", muscle:"core" },
-        { id:"e_core_tuck", label:"Tuck Crunch", type:"single", muscle:"core" },
+        { id:"e_core_zdvih", label:"Zdvih nohou v leže", type:"bodyweight", coef:0.3, muscle:"core" },
+        { id:"e_core_tuck", label:"Tuck Crunch", type:"bodyweight", coef:0.25, muscle:"core" },
         { id:"e_core_twist0", label:"Twist bez činky", type:"single", muscle:"core" },
-        { id:"e_core_twist10", label:"Twist s 10 kg", type:"single", muscle:"core" },
+        { id:"e_core_twist10", label:"Twist s KB", type:"ladder", weights:[10,14,20], muscle:"core" },
         { id:"e_core_plank", label:"Plank (sekundy)", type:"single", muscle:"core" },
-        { id:"e_core_plank_rot", label:"Plank s rotací", type:"single", muscle:"core" },
-        { id:"e_core_slider_pike", label:"Slider Plank do hory", type:"single", muscle:"core", secondary:["shoulders"] },
-        { id:"e_core_slider_knee", label:"Slider plank přítah kolen", type:"single", muscle:"core", secondary:["shoulders"] },
-        { id:"e_core_kickthrough", label:"Kick-through do stran", type:"single", muscle:"core", secondary:["shoulders","glutes"] }
+        { id:"e_core_plank_rot", label:"Plank s rotací", type:"bodyweight", coef:0.35, muscle:"core" },
+        { id:"e_core_slider_pike", label:"Slider Plank do hory", type:"bodyweight", coef:0.55, muscle:"core", secondary:["shoulders"] },
+        { id:"e_core_slider_knee", label:"Slider plank přítah kolen", type:"bodyweight", coef:0.55, muscle:"core", secondary:["shoulders"] },
+        { id:"e_core_kickthrough", label:"Kick-through do stran", type:"bodyweight", coef:0.45, muscle:"core", secondary:["shoulders","glutes"] }
       ]},
       { id:"g_legs", icon:"🦵", title:"Nohy", exercises:[
         { id:"e_legs_osa", label:"Dřepy osa", type:"ladder", weights:[30,35,40,45,50], muscle:"quads", addBodyweight:true },
@@ -889,6 +889,29 @@ function upgradeConfigToV9(cfg){
     }
   }
   cfg.version = 9;
+}
+function upgradeConfigToV10(cfg){
+  const core = cfg.groups.find(g=>g.id==="g_core");
+  if(core){
+    const setCoef = (id, coef, secondary)=>{
+      const ex = core.exercises.find(e=>e.id===id);
+      if(ex && ex.type==="single"){ ex.type="bodyweight"; ex.coef=coef; if(secondary && !ex.secondary) ex.secondary=secondary; }
+    };
+    setCoef("e_core_zdvih", 0.3);
+    setCoef("e_core_tuck", 0.25);
+    setCoef("e_core_plank_rot", 0.35);
+    setCoef("e_core_kickthrough", 0.45, ["shoulders","glutes"]);
+    setCoef("e_core_slider_pike", 0.55, ["shoulders"]);
+    setCoef("e_core_slider_knee", 0.55, ["shoulders"]);
+    const twist = core.exercises.find(e=>e.id==="e_core_twist10");
+    if(twist && twist.type==="single"){
+      twist.type = "ladder";
+      twist.label = "Twist s KB";
+      twist.weights = [10,14,20];
+      delete twist.coef;
+    }
+  }
+  cfg.version = 10;
 }
 
 const SPORT_FIELD_DEFS = [
@@ -1095,6 +1118,7 @@ function loadConfig(){
     if(CONFIG.version < 7) upgradeConfigToV7(CONFIG);
     if(CONFIG.version < 8) upgradeConfigToV8(CONFIG);
     if(CONFIG.version < 9) upgradeConfigToV9(CONFIG);
+    if(CONFIG.version < 10) upgradeConfigToV10(CONFIG);
   }
   persistConfig();
 }
@@ -1138,6 +1162,20 @@ function loadRecords(){
   if(migratedBreak) persistRecords();
 }
 function persistRecords(){ localStorage.setItem(RECORDS_KEY, JSON.stringify(records)); }
+function migrateTwist10DataFormat(){
+  // "Twist s KB" se přeměnil z jednoduchého cviku na váhový žebříček — staré záznamy měly
+  // data uložená jako obyčejný text "8,6,5", nový formát čeká objekt {váha: "8,6,5"}.
+  const twist = findExerciseById("e_core_twist10");
+  if(!twist || twist.type!=="ladder") return;
+  let changed = false;
+  records.forEach(r=>{
+    if(r.data && typeof r.data["e_core_twist10"] === "string" && r.data["e_core_twist10"]){
+      r.data["e_core_twist10"] = { "10": r.data["e_core_twist10"] };
+      changed = true;
+    }
+  });
+  if(changed) persistRecords();
+}
 
 function migrateV2Record(r){
   const sports = {};
@@ -3503,6 +3541,7 @@ function renderBodyCharts(){
 function init(){
   loadTheme();
   loadConfig(); loadSports(); loadRecords(); loadStopwatchAll(); loadPinned(); loadProfile(); loadBodyLog();
+  migrateTwist10DataFormat();
   buildMetaGrid(); buildSuuntoGrid(); buildProfileGrid();
 
   if(records.length){ current = JSON.parse(JSON.stringify(records[records.length-1])); }
