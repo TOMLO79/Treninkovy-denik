@@ -605,7 +605,7 @@
       <p class="help-p"><b>Cviky ve skupinách</b> — klepni na skupinu (Bench, Core, Nohy...) a rozbalí se. Ke každému cviku je teď malé vstupní pole "+" na jednu sérii — napíšeš číslo, po ~2,5s ticha (nebo klepnutím jinam / Enterem) se série uloží s přesným časem a pole se vyprázdní na další. Uložené série vidíš jako malé "kostičky" vedle názvu, čas poslední série je vpravo. Tužtičkou ✏️ otevřeš editaci — tam vidíš čas každé série zvlášť, můžeš opravit hodnotu nebo sérii smazat 🗑. Tímto appka sbírá skutečná časová razítka ke každé sérii, ne jen odhad — časem z toho půjde počítat trend výkonu/RPE v průběhu tréninku.</p>
       <p class="help-p"><b>Suunto sken</b> — v sekci "Suunto metriky" nebo přímo u konkrétního sportu je tlačítko na vyfocení/vybrání screenshotu z hodinek. Appka automaticky vytáhne TF, TSS, tempo, převýšení, kadenci, VO2max atd.</p>
       <p class="help-p"><b>Ukládání</b> — appka ukládá automaticky (2,5s po poslední změně, malá tichá "✓ auto" hláška), nemusíš nic mačkat. Tlačítko "Uložit" (nahoře vedle stopek i dole) je pro jistotu / okamžité uložení.</p>
-      <p class="help-p"><b>📊 Souhrn</b> — pod "Celkem zvednuto" je teď i pruh a čísla 🦵 Nohy vs. 💪 Vrch těla — nohy (dřepy, výpony) do objemu počítají i vlastní váhu, takže dost snadno "přebijí" zbytek, tenhle rozpad ti ukáže, jak moc.</p>
+      <p class="help-p"><b>📊 Souhrn</b> — pod "Celkem zvednuto" je teď i pruh a čísla 🦵 Nohy vs. 💪 Vrch těla — nohy (dřepy, výpony) do objemu počítají i vlastní váhu, takže dost snadno "přebijí" zbytek, tenhle rozpad ti ukáže, jak moc. U kombo cviků (Kalisthenika) appka rozpočítá kg podle toho, které konkrétní komponenty v kombu jsou nohy a které ne (např. u angličáku jde dřepová část do Nohou, klik a plank do Vrchu těla) — nezáleží na tom, do jaké skupiny je samotné kombo zařazené.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
@@ -2130,15 +2130,46 @@ function historicalMaxForExercise(exId, weights, excludeId){
   return max;
 }
 
+function groupIdOfExercise(exId){
+  for(const g of CONFIG.groups){ if(g.exercises.some(e=>e.id===exId)) return g.id; }
+  return null;
+}
+function exerciseKg(ex, rec, bodyWeight){
+  if(ex.type==="ladder"){
+    let v = ladderKg(rec.data[ex.id], ex.weights);
+    if(ex.addBodyweight) v += ladderBodyweightKg(rec.data[ex.id], ex.weights, bodyWeight);
+    return v;
+  }
+  if(ex.type==="bodyweight") return bodyWeight*(ex.coef??1)*sumReps(rec.data[ex.id]);
+  if(ex.type==="combo") return comboKgPerRep(ex, bodyWeight)*sumReps(rec.data[ex.id]);
+  return 0;
+}
+function exerciseLegsUpperSplit(ex, rec, bodyWeight){
+  if(ex.type==="combo"){
+    const reps = sumReps(rec.data[ex.id]);
+    let legs=0, upper=0;
+    (ex.components||[]).forEach(c=>{
+      const kg = (c.count||0)*(c.coef||0)*bodyWeight*reps;
+      if(groupIdOfExercise(c.exId)==="g_legs") legs+=kg; else upper+=kg;
+    });
+    return {legs, upper};
+  }
+  const kg = exerciseKg(ex, rec, bodyWeight);
+  return groupIdOfExercise(ex.id)==="g_legs" ? {legs:kg, upper:0} : {legs:0, upper:kg};
+}
 function updateSummaryDynamic(){
   const grid = document.getElementById("summaryGrid");
   let grandFree=0, grandBody=0, grandSets=0, legsKg=0, upperKg=0;
+  const bwNow = parseFloat(current.meta.weight)||0;
   grid.innerHTML = CONFIG.groups.map(g=>{
     const t = groupTotals(g, current);
     grandFree += t.kgFree; grandBody += t.kgBody; grandSets += t.sets;
-    if(g.id==="g_legs") legsKg += t.kgTotal; else upperKg += t.kgTotal;
+    g.exercises.forEach(ex=>{
+      const split = exerciseLegsUpperSplit(ex, current, bwNow);
+      legsKg += split.legs; upperKg += split.upper;
+    });
     const hasLadder = g.exercises.some(e=>e.type==="ladder");
-    const hasBody = g.exercises.some(e=>e.type==="bodyweight");
+    const hasBody = g.exercises.some(e=>e.type==="bodyweight"||e.type==="combo");
     const hasSingle = g.exercises.some(e=>e.type==="single");
     let lines = "";
     if(hasLadder) lines += `<div class="s-line"><span>Váhy činky</span><b>${t.kgFree} kg</b></div>`;
@@ -3368,8 +3399,18 @@ function renderChartView(){
 function renderStrengthCharts(){
   const recs = getSortedRecordsForChart().filter(r=> CONFIG.groups.some(g=> groupTotals(g,r).kgTotal>0 || groupTotals(g,r).reps>0));
   const labels = recs.map(r=> "#"+(r.meta.trainNum||"?"));
-  const legsTotals = recs.map(r=> CONFIG.groups.filter(g=>g.id==="g_legs").reduce((s,g)=> s+groupTotals(g,r).kgTotal, 0));
-  const upperTotals = recs.map(r=> CONFIG.groups.filter(g=>g.id!=="g_legs").reduce((s,g)=> s+groupTotals(g,r).kgTotal, 0));
+  const legsTotals = recs.map(r=>{
+    const bw = parseFloat(r.meta.weight)||0;
+    let legs=0;
+    CONFIG.groups.forEach(g=> g.exercises.forEach(ex=> legs += exerciseLegsUpperSplit(ex, r, bw).legs));
+    return legs;
+  });
+  const upperTotals = recs.map(r=>{
+    const bw = parseFloat(r.meta.weight)||0;
+    let upper=0;
+    CONFIG.groups.forEach(g=> g.exercises.forEach(ex=> upper += exerciseLegsUpperSplit(ex, r, bw).upper));
+    return upper;
+  });
   const benchEx = findExerciseById("e_bench"), dlEx = findExerciseById("e_deadlift");
   const benchMax = recs.map(r=> benchEx ? (ladderMaxWeight(r.data[benchEx.id], benchEx.weights)||null) : null);
   const dlMax = recs.map(r=> dlEx ? (ladderMaxWeight(r.data[dlEx.id], dlEx.weights)||null) : null);
