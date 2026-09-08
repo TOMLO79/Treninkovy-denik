@@ -255,6 +255,12 @@
   .cfg-ex-row{display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px dashed var(--border);flex-wrap:wrap;}
   .cfg-ex-secondary{flex:1 0 100%;display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:2px;}
   .cfg-ex-secondary-lbl{font-size:0.62rem;color:var(--faint);text-transform:uppercase;letter-spacing:0.3px;flex:none;margin-right:2px;}
+  .combo-block{flex-direction:column;align-items:stretch;gap:6px;background:var(--surface-2);border-radius:9px;padding:8px 10px;margin-top:6px;}
+  .combo-comp-row{display:flex;align-items:center;gap:6px;font-size:0.75rem;flex-wrap:wrap;}
+  .combo-comp-label{flex:1;min-width:80px;color:var(--text);}
+  .combo-comp-row input[type="number"]{width:48px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 4px;font-family:var(--mono);font-size:0.78rem;}
+  .combo-comp-row select{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:5px 6px;font-size:0.75rem;flex:1;min-width:120px;}
+  .combo-comp-add{border-top:1px dashed var(--border);padding-top:8px;margin-top:2px;}
   .cfg-ex-row:last-of-type{border-bottom:none;}
   .cfg-ex-label{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 9px;font-size:0.84rem;min-width:90px;}
   .cfg-ex-weights, .cfg-ex-coef{width:82px;background:var(--surface-2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 6px;font-size:0.74rem;font-family:var(--mono);text-align:center;}
@@ -262,6 +268,7 @@
   .cfg-badge.ladder{background:var(--accent-dim);color:var(--accent);}
   .cfg-badge.single{background:#3d4552;color:var(--muted);}
   .cfg-badge.bodyweight{background:#7ed95722;color:var(--good);}
+  .cfg-badge.combo{background:#f2b13422;color:#f2b134;}
   .cfg-ex-del{background:none;border:none;color:var(--faint);font-size:0.95rem;padding:2px 4px;cursor:pointer;flex:none;}
   .cfg-ex-dup{background:none;border:none;color:var(--faint);font-size:1.05rem;padding:2px 4px;cursor:pointer;flex:none;}
   .cfg-add-ex{margin-top:10px;background:var(--surface-2);border:1px dashed var(--border);border-radius:10px;padding:10px;}
@@ -609,7 +616,7 @@
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">🏋️ Cviky</div>
       <p class="help-p">Editor skupin a cviků. U každého cviku můžeš: přejmenovat, upravit váhy (žebříček), koeficient tělesné váhy, přiřadit sval, přesunout nahoru/dolů šipkami ▲▼, <b>duplikovat</b> ikonou ⎘ (vytvoří kopii "(kopie)" se stejným nastavením, kterou pak jen přejmenuješ/upravíš — hodí se pro podobné varianty cviku), nebo smazat 🗑. Pod řádkem cviku je řádek "sekundárně:" s klikacími pilulkami — tam zaškrtneš, které další svaly cvik vedlejšně zapojuje (appka je pak zohlední v kategorickém zobrazení Svalů i v Souhrnu objemu se sekundárním zapojením). Dole v každé skupině je formulář na přidání nového cviku.</p>
-      <p class="help-p"><b>Kombinované cviky (Kalisthenika)</b> — appka nemá speciální typ pro "cviky ze 2-3 pohybů najednou" (např. angličák = klik + dřep výskok), místo toho se to modeluje jedním cvikem typu "vlastní váha", kde: jedno opakování celého komba = jedno číslo do série (nepočítáš zvlášť kliky a zvlášť dřepy), primární sval je ten nejvýraznější pohyb, a zbytek zapojených svalů přidáš jako sekundární (appka je pak i tak zohlední v souhrnu objemu se sekundárním zapojením ve Svalech). Koeficient tělesné váhy si můžeš zvýšit oproti jednoduchému cviku (např. 1.2–1.5 místo 1), ať objem lépe odráží, že je to náročnější kombinace — je to jen orientační číslo pro appku, žádná přesná fyzika. Neřeš, jestli má appka počítat i plankovou/přechodovou fázi zvlášť — u komb appka počítá jen celkový počet opakování, ne jednotlivé dílčí fáze.</p>
+      <p class="help-p"><b>Kombinované cviky (Kalisthenika)</b> — appka umí i cviky složené z víc pohybů najednou (např. angličák = dřep + klik + plank), přesně, ne jen odhadem. Při přidávání cviku vyber typ "Kombo" — appka založí prázdné kombo a pod ním se objeví editor komponent. Tam z existujících cviků (Hlavní síla, OH press & doplňky, Core, Nohy) vybereš jednotlivé pohyby, ke každému zadáš počet opakování za jedno kombo (např. u kombo "2x klik + kick-through + výskok" dáš klik ×2) a váhový koeficient tělesné váhy pro tenhle konkrétní pohyb v tomhle kombu (0 = tenhle pohyb se do objemu (kg) nepočítá vůbec, i když reálně sval zapojuje — třeba u kick-through nebo plank fáze, kde není co "zvedat"). Appka pak při zápisu bere kombo jako běžný cvik s vlastní vahou — zapisuješ jen jedno číslo (kolikrát jsi celé kombo udělal), ne zvlášť za každý dílčí pohyb. Primární a sekundární sval appka spočítá sama z komponent (podle poměru počtu opakování), nemusíš to určovat ručně.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
@@ -671,7 +678,7 @@ const OLD_RECORDS_KEY_V1 = "trenink_records_v1";
 
 function defaultConfig(){
   return {
-    version: 8,
+    version: 9,
     groups: [
       { id:"g_strength", icon:"🏋️", title:"Hlavní síla", exercises:[
         { id:"e_bench", label:"Bench", type:"ladder", weights:[40,45,50,55,60,65,70,75,80,85,90,95,100], muscle:"chest", secondary:["triceps","shoulders"] },
@@ -680,6 +687,7 @@ function defaultConfig(){
       ]},
       { id:"g_upper", icon:"💪", title:"OH press & doplňky", exercises:[
         { id:"e_ohp", label:"OH press", type:"ladder", weights:[30,35,40,45,50], muscle:"shoulders" },
+        { id:"e_upper_klik", label:"Klik (základní)", type:"bodyweight", coef:0.65, muscle:"chest", secondary:["triceps","shoulders"] },
         { id:"e_ohp_uzko", label:"Kliky na úzko", type:"bodyweight", coef:0.65, muscle:"triceps" },
         { id:"e_ohp_siroko", label:"Kliky na široko", type:"bodyweight", coef:0.65, muscle:"chest" },
         { id:"e_hrazda_nad", label:"Hrazda Nadhmat", type:"bodyweight", coef:1, muscle:"back" },
@@ -706,7 +714,8 @@ function defaultConfig(){
         { id:"e_core_plank", label:"Plank (sekundy)", type:"single", muscle:"core" },
         { id:"e_core_plank_rot", label:"Plank s rotací", type:"single", muscle:"core" },
         { id:"e_core_slider_pike", label:"Slider Plank do hory", type:"single", muscle:"core", secondary:["shoulders"] },
-        { id:"e_core_slider_knee", label:"Slider plank přítah kolen", type:"single", muscle:"core", secondary:["shoulders"] }
+        { id:"e_core_slider_knee", label:"Slider plank přítah kolen", type:"single", muscle:"core", secondary:["shoulders"] },
+        { id:"e_core_kickthrough", label:"Kick-through do stran", type:"single", muscle:"core", secondary:["shoulders","glutes"] }
       ]},
       { id:"g_legs", icon:"🦵", title:"Nohy", exercises:[
         { id:"e_legs_osa", label:"Dřepy osa", type:"ladder", weights:[30,35,40,45,50], muscle:"quads", addBodyweight:true },
@@ -715,11 +724,20 @@ function defaultConfig(){
         { id:"e_legs_bez", label:"Dřepy bez zátěže", type:"bodyweight", coef:1, muscle:"quads" },
         { id:"e_legs_vypony", label:"Výpony špičky 40kg", type:"ladder", weights:[40], muscle:"calves", addBodyweight:true },
         { id:"e_legs_jedna", label:"Dřepy na jedné noze", type:"bodyweight", coef:1, muscle:"quads" },
-        { id:"e_legs_split", label:"Split squat", type:"bodyweight", coef:1, muscle:"glutes" }
+        { id:"e_legs_split", label:"Split squat", type:"bodyweight", coef:1, muscle:"glutes" },
+        { id:"e_legs_vyskok", label:"Dřep s výskokem", type:"bodyweight", coef:1.1, muscle:"quads", secondary:["glutes","calves"] }
       ]},
       { id:"g_calis", icon:"🔥", title:"Kalisthenika", exercises:[
-        { id:"e_calis_anglicak", label:"Angličák (klik + dřep výskok)", type:"bodyweight", coef:1.2, muscle:"quads", secondary:["chest","shoulders","triceps","core","glutes","calves"] },
-        { id:"e_calis_kombo3", label:"Kombo: 2x klik + kick-through + výskok", type:"bodyweight", coef:1.5, muscle:"core", secondary:["chest","shoulders","triceps","quads","glutes","hamstrings","calves"] }
+        { id:"e_calis_anglicak", label:"Angličák (klik + dřep + plank)", type:"combo", muscle:"quads", secondary:["chest","triceps","shoulders","core"], components:[
+          { exId:"e_legs_bez", count:1, coef:1 },
+          { exId:"e_upper_klik", count:1, coef:1 },
+          { exId:"e_core_plank", count:1, coef:0.5 }
+        ]},
+        { id:"e_calis_kombo3", label:"Kombo: 2x klik + kick-through + výskok", type:"combo", muscle:"chest", secondary:["triceps","shoulders","core","glutes","quads","calves"], components:[
+          { exId:"e_upper_klik", count:2, coef:1 },
+          { exId:"e_core_kickthrough", count:2, coef:0 },
+          { exId:"e_legs_vyskok", count:1, coef:1 }
+        ]}
       ]}
     ]
   };
@@ -826,6 +844,51 @@ function upgradeConfigToV8(cfg){
     ]});
   }
   cfg.version = 8;
+}
+
+function upgradeConfigToV9(cfg){
+  const upper = cfg.groups.find(g=>g.id==="g_upper");
+  if(upper && !upper.exercises.some(e=>e.id==="e_upper_klik")){
+    const idx = upper.exercises.findIndex(e=>e.id==="e_ohp_uzko");
+    const klik = { id:"e_upper_klik", label:"Klik (základní)", type:"bodyweight", coef:0.65, muscle:"chest", secondary:["triceps","shoulders"] };
+    if(idx>=0) upper.exercises.splice(idx, 0, klik); else upper.exercises.push(klik);
+  }
+  const legs = cfg.groups.find(g=>g.id==="g_legs");
+  if(legs && !legs.exercises.some(e=>e.id==="e_legs_vyskok")){
+    legs.exercises.push({ id:"e_legs_vyskok", label:"Dřep s výskokem", type:"bodyweight", coef:1.1, muscle:"quads", secondary:["glutes","calves"] });
+  }
+  const core = cfg.groups.find(g=>g.id==="g_core");
+  if(core && !core.exercises.some(e=>e.id==="e_core_kickthrough")){
+    core.exercises.push({ id:"e_core_kickthrough", label:"Kick-through do stran", type:"single", muscle:"core", secondary:["shoulders","glutes"] });
+  }
+  const calis = cfg.groups.find(g=>g.id==="g_calis");
+  if(calis){
+    const anglicak = calis.exercises.find(e=>e.id==="e_calis_anglicak");
+    if(anglicak && anglicak.type!=="combo"){
+      anglicak.type = "combo";
+      anglicak.label = "Angličák (klik + dřep + plank)";
+      anglicak.components = [
+        { exId:"e_legs_bez", count:1, coef:1 },
+        { exId:"e_upper_klik", count:1, coef:1 },
+        { exId:"e_core_plank", count:1, coef:0.5 }
+      ];
+      delete anglicak.coef;
+      deriveComboMuscles(anglicak);
+    }
+    const kombo3 = calis.exercises.find(e=>e.id==="e_calis_kombo3");
+    if(kombo3 && kombo3.type!=="combo"){
+      kombo3.type = "combo";
+      kombo3.label = "Kombo: 2x klik + kick-through + výskok";
+      kombo3.components = [
+        { exId:"e_upper_klik", count:2, coef:1 },
+        { exId:"e_core_kickthrough", count:2, coef:0 },
+        { exId:"e_legs_vyskok", count:1, coef:1 }
+      ];
+      delete kombo3.coef;
+      deriveComboMuscles(kombo3);
+    }
+  }
+  cfg.version = 9;
 }
 
 const SPORT_FIELD_DEFS = [
@@ -1031,6 +1094,7 @@ function loadConfig(){
     if(CONFIG.version < 6) upgradeConfigToV6(CONFIG);
     if(CONFIG.version < 7) upgradeConfigToV7(CONFIG);
     if(CONFIG.version < 8) upgradeConfigToV8(CONFIG);
+    if(CONFIG.version < 9) upgradeConfigToV9(CONFIG);
   }
   persistConfig();
 }
@@ -2055,6 +2119,7 @@ function groupTotals(g, rec){
       (ex.weights||[]).forEach(w=> sets += countSets(rec.data[ex.id] && rec.data[ex.id][w]));
     }
     else if(ex.type==="bodyweight"){ kgBody += bodyWeight * (ex.coef ?? 1) * sumReps(rec.data[ex.id]); sets += countSets(rec.data[ex.id]); }
+    else if(ex.type==="combo"){ kgBody += comboKgPerRep(ex, bodyWeight) * sumReps(rec.data[ex.id]); sets += countSets(rec.data[ex.id]); }
     else { reps += sumReps(rec.data[ex.id]); sets += countSets(rec.data[ex.id]); }
   });
   return { kgFree:Math.round(kgFree), kgBody:Math.round(kgBody), kgTotal:Math.round(kgFree+kgBody), reps:Math.round(reps), sets };
@@ -2299,22 +2364,52 @@ function renderConfigEditor(){
         ? `<input class="cfg-ex-coef" type="number" step="0.05" value="${ex.coef ?? 1}" onchange="updateExerciseCoef('${g.id}','${ex.id}', this.value)" placeholder="koef.">` : "";
       const addBwField = ex.type==="ladder"
         ? `<label class="cfg-check-pill ${ex.addBodyweight?'active':''}" style="font-size:0.65rem"><input type="checkbox" ${ex.addBodyweight?'checked':''} onchange="updateExerciseAddBw('${g.id}','${ex.id}', this.checked)"> +vlastní váha</label>` : "";
-      const badgeLabel = ex.type==='ladder'?'žebřík':(ex.type==='bodyweight'?'vlastní váha':'cvik');
+      const badgeLabel = ex.type==='ladder'?'žebřík':(ex.type==='bodyweight'?'vlastní váha':(ex.type==='combo'?'kombo':'cvik'));
+      const isCombo = ex.type==="combo";
       const muscleOpts = `<option value="">– sval –</option>` + MUSCLE_DEFS.map(m=>`<option value="${m.k}" ${ex.muscle===m.k?'selected':''}>${m.label}</option>`).join("");
-      const secondaryPills = MUSCLE_DEFS.filter(m=> m.k!==ex.muscle).map(m=>{
+      const muscleField = isCombo
+        ? `<select class="cfg-ex-coef" style="width:96px" disabled title="U komba se počítá automaticky z komponent">${muscleOpts}</select>`
+        : `<select class="cfg-ex-coef" style="width:96px" onchange="updateExerciseMuscle('${g.id}','${ex.id}', this.value)">${muscleOpts}</select>`;
+      const secondaryPills = isCombo ? "" : MUSCLE_DEFS.filter(m=> m.k!==ex.muscle).map(m=>{
         const active = (ex.secondary||[]).includes(m.k);
         return `<label class="cfg-check-pill ${active?'active':''}" style="font-size:0.6rem"><input type="checkbox" ${active?'checked':''} onchange="toggleExerciseSecondary('${g.id}','${ex.id}','${m.k}', this.checked)"> ${m.label}</label>`;
       }).join("");
+      const secondaryRow = isCombo ? "" : `<div class="cfg-ex-secondary"><span class="cfg-ex-secondary-lbl">sekundárně:</span>${secondaryPills}</div>`;
+      let comboRow = "";
+      if(isCombo){
+        const compRows = (ex.components||[]).map((c,ci)=>{
+          const subEx = findExerciseById(c.exId);
+          return `<div class="combo-comp-row">
+            <span class="combo-comp-label">${subEx?escAttr(subEx.label):'(smazaný cvik)'}</span>
+            <input type="number" step="1" value="${c.count}" onchange="updateComboComponent('${g.id}','${ex.id}',${ci},'count',this.value)">×
+            <input type="number" step="0.05" value="${c.coef}" onchange="updateComboComponent('${g.id}','${ex.id}',${ci},'coef',this.value)">kg-koef
+            <button type="button" class="cfg-ex-del" onclick="removeComboComponent('${g.id}','${ex.id}',${ci})">✕</button>
+          </div>`;
+        }).join("");
+        const muscleLabel = ex.muscle ? (MUSCLE_DEFS.find(m=>m.k===ex.muscle)||{}).label : "–";
+        const secLabels = (ex.secondary||[]).map(s=> (MUSCLE_DEFS.find(m=>m.k===s)||{}).label).filter(Boolean).join(", ");
+        comboRow = `<div class="cfg-ex-secondary combo-block">
+          <div class="cfg-ex-secondary-lbl">komponenty komba:</div>
+          ${compRows || '<div class="cfg-hint" style="margin:2px 0">Zatím žádné — přidej cviky níže.</div>'}
+          <div class="combo-comp-row combo-comp-add">
+            <select id="comboAddSel_${ex.id}">${comboAllowedExerciseOptions()}</select>
+            <input type="number" id="comboAddCount_${ex.id}" value="1" step="1">×
+            <input type="number" id="comboAddCoef_${ex.id}" value="1" step="0.05">kg-koef
+            <button type="button" class="btn-mini" onclick="addComboComponent('${g.id}','${ex.id}')">+ přidat</button>
+          </div>
+          <div class="cfg-hint" style="margin-top:4px">Sval (automaticky z komponent): primárně <b>${muscleLabel}</b>${secLabels?', sekundárně '+secLabels:''}</div>
+        </div>`;
+      }
       return `<div class="cfg-ex-row">
         <span class="cfg-badge ${ex.type}">${badgeLabel}</span>
         <input class="cfg-ex-label" value="${escAttr(ex.label)}" onchange="renameExercise('${g.id}','${ex.id}', this.value)">
         ${weightsField}${coefField}${addBwField}
-        <select class="cfg-ex-coef" style="width:96px" onchange="updateExerciseMuscle('${g.id}','${ex.id}', this.value)">${muscleOpts}</select>
+        ${muscleField}
         <button class="cfg-move" onclick="moveExercise('${g.id}','${ex.id}',-1)" ${ei===0?'style="visibility:hidden"':''}>▲</button>
         <button class="cfg-move" onclick="moveExercise('${g.id}','${ex.id}',1)" ${ei===g.exercises.length-1?'style="visibility:hidden"':''}>▼</button>
         <button class="cfg-ex-dup" onclick="duplicateExercise('${g.id}','${ex.id}')" title="Duplikovat">⎘</button>
         <button class="cfg-ex-del" onclick="deleteExercise('${g.id}','${ex.id}')">🗑</button>
-        <div class="cfg-ex-secondary"><span class="cfg-ex-secondary-lbl">sekundárně:</span>${secondaryPills}</div>
+        ${secondaryRow}${comboRow}
       </div>`;
     }).join("");
     return `<div class="cfg-group">
@@ -2332,6 +2427,7 @@ function renderConfigEditor(){
             <option value="single">Jednotlivý cvik</option>
             <option value="ladder">Váhový žebříček</option>
             <option value="bodyweight">Cvik s vlastní vahou</option>
+            <option value="combo">Kombo (víc cviků najednou)</option>
           </select>
           <input class="cfg-new-label" id="newLabel_${g.id}" placeholder="Název cviku">
         </div>
@@ -2346,11 +2442,68 @@ function renderConfigEditor(){
     </div>`;
   }).join("");
 }
+function comboKgPerRep(ex, bodyWeight){
+  return (ex.components||[]).reduce((s,c)=> s + (c.count||0)*(c.coef||0)*bodyWeight, 0);
+}
+function deriveComboMuscles(ex){
+  const comps = ex.components||[];
+  if(!comps.length){ ex.muscle=""; ex.secondary=[]; return; }
+  let best = comps[0];
+  comps.forEach(c=>{ if((c.count||0) > (best.count||0)) best = c; });
+  const bestEx = findExerciseById(best.exId);
+  ex.muscle = bestEx ? (bestEx.muscle||"") : "";
+  const secSet = new Set();
+  comps.forEach(c=>{
+    const subEx = findExerciseById(c.exId);
+    if(!subEx) return;
+    if(subEx.muscle && subEx.muscle!==ex.muscle) secSet.add(subEx.muscle);
+    (subEx.secondary||[]).forEach(sm=>{ if(sm!==ex.muscle) secSet.add(sm); });
+  });
+  ex.secondary = Array.from(secSet);
+}
+function comboAllowedExerciseOptions(){
+  const allowedGroupIds = ["g_strength","g_upper","g_core","g_legs"];
+  let opts = `<option value="">– vyber cvik –</option>`;
+  CONFIG.groups.filter(g=> allowedGroupIds.includes(g.id)).forEach(g=>{
+    opts += `<optgroup label="${escAttr(g.icon||'')} ${escAttr(g.title)}">`;
+    g.exercises.forEach(ex=> opts += `<option value="${ex.id}">${escAttr(ex.label)}</option>`);
+    opts += `</optgroup>`;
+  });
+  return opts;
+}
+function addComboComponent(gid, exid){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex) return;
+  const sel = document.getElementById("comboAddSel_"+exid);
+  const countEl = document.getElementById("comboAddCount_"+exid);
+  const coefEl = document.getElementById("comboAddCoef_"+exid);
+  if(!sel || !sel.value){ showToast("Vyber cvik, který chceš do komba přidat"); return; }
+  if(!ex.components) ex.components = [];
+  ex.components.push({ exId: sel.value, count: parseFloat(countEl.value)||1, coef: parseFloat(coefEl.value)||0 });
+  deriveComboMuscles(ex);
+  persistConfig(); syncCurrentWithConfig(); renderConfigEditor();
+}
+function updateComboComponent(gid, exid, idx, field, val){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex || !ex.components || !ex.components[idx]) return;
+  ex.components[idx][field] = parseFloat(val)||0;
+  deriveComboMuscles(ex);
+  persistConfig(); renderConfigEditor();
+}
+function removeComboComponent(gid, exid, idx){
+  const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
+  const ex = g.exercises.find(x=>x.id===exid); if(!ex || !ex.components) return;
+  ex.components.splice(idx,1);
+  deriveComboMuscles(ex);
+  persistConfig(); syncCurrentWithConfig(); renderConfigEditor();
+}
 function escAttr(s){ return (s||"").replace(/"/g,"&quot;"); }
 function toggleAddExFields(gid){
   const type = document.getElementById("newType_"+gid).value;
   document.getElementById("weightsRow_"+gid).style.display = type==="ladder" ? "flex" : "none";
   document.getElementById("coefRow_"+gid).style.display = type==="bodyweight" ? "flex" : "none";
+  const muscleRow = document.getElementById("newMuscle_"+gid).closest(".cfg-add-row");
+  if(muscleRow) muscleRow.style.display = type==="combo" ? "none" : "flex";
 }
 function addGroup(){
   const icon = document.getElementById("newGroupIcon").value.trim() || "🏋️";
@@ -2388,9 +2541,11 @@ function addExercise(gid){
     ex.addBodyweight = document.getElementById("newAddBw_"+gid).checked;
   }
   if(type==="bodyweight"){ ex.coef = parseFloat(document.getElementById("newCoef_"+gid).value)||1; }
+  if(type==="combo"){ ex.components = []; }
   ex.muscle = document.getElementById("newMuscle_"+gid).value || "";
   g.exercises.push(ex);
-  persistConfig(); syncCurrentWithConfig(); renderConfigEditor(); showToast("Cvik přidán");
+  persistConfig(); syncCurrentWithConfig(); renderConfigEditor();
+  showToast(type==="combo" ? "Kombo přidáno — dole u něj přidej jednotlivé cviky" : "Cvik přidán");
 }
 function updateExerciseMuscle(gid, exid, val){
   const g = CONFIG.groups.find(x=>x.id===gid); if(!g) return;
@@ -2532,6 +2687,7 @@ function computeMuscleForRecord(rec){
     let v=0;
     if(ex.type==="ladder") v = ladderKg(rec.data[ex.id], ex.weights);
     else if(ex.type==="bodyweight") v = bodyWeight*(ex.coef??1)*sumReps(rec.data[ex.id]);
+    else if(ex.type==="combo") v = comboKgPerRep(ex, bodyWeight)*sumReps(rec.data[ex.id]);
     else v = sumReps(rec.data[ex.id]);
     vals[ex.muscle] += v;
   }));
@@ -2551,6 +2707,7 @@ function computeMuscleVolumeTotals(){
         if(ex.addBodyweight) v += ladderBodyweightKg(rec.data[ex.id], ex.weights, bodyWeight);
       }
       else if(ex.type==="bodyweight") v = bodyWeight*(ex.coef??1)*sumReps(rec.data[ex.id]);
+      else if(ex.type==="combo") v = comboKgPerRep(ex, bodyWeight)*sumReps(rec.data[ex.id]);
       else v = sumReps(rec.data[ex.id]);
       if(v<=0) return;
       if(ex.muscle && ex.muscle in primary) primary[ex.muscle]+=v;
