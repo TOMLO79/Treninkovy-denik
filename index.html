@@ -162,8 +162,8 @@
   input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   input[type=number]{ -moz-appearance:textfield; }
 
-  .part-toggle{display:flex;gap:6px;}
-  .part-toggle button{flex:1;padding:9px 4px;border-radius:9px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);font-size:0.76rem;font-weight:700;cursor:pointer;font-family:var(--sans);}
+  .part-toggle{display:flex;gap:4px;}
+  .part-toggle button{flex:1;padding:9px 2px;border-radius:9px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);font-size:0.68rem;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap;}
   .part-toggle button.active{background:var(--accent);color:#140900;border-color:var(--accent);}
 
   .prior-toggle{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:9px 10px;}
@@ -616,7 +616,7 @@
       <div class="subgroup-title" style="margin-top:0">📝 Zápis (hlavní obrazovka)</div>
       <p class="help-p">Nahoře je "hodinkový" přehled (číslo tréninku, délka, TSS) a stopky — Start/Reset ti automaticky vyplní čas začátku/konce a délku tréninku. Vedle Start/Reset je i tlačítko Uložit, pro rychlé uložení bez rolování dolů. Dokud stopky běží, appka drží obrazovku telefonu rozsvícenou (nezhasne, nezamkne se) — funguje to, jen když je appka aktivně otevřená na displeji (ne úplně na pozadí).</p>
       <p class="help-p"><b>⭐ Rychlý přístup</b> — cviky, které si připneš hvězdičkou ☆ u libovolného cviku níže, se objeví nahoře, ať se u okruhů (např. bench→břicho→nohy dokola) nemusíš pořád proplétat mezi sekcemi. Pořadí připnutých cviků změníš šipkami ▲▼ vlevo od cviku — appka si ho trvale pamatuje. Během tréninku appka navíc dočasně posouvá cviky, do kterých už jsi něco zapsal, nahoru (ať nemusíš rolovat k už vyplněným) — jakmile ale založíš nový trénink, zobrazí se zase přesně to pořadí, co máš uložené šipkami. Celou sekci jde sbalit/rozbalit klepnutím na nadpis — appka si pamatuje, jak jsi ji naposledy nechal, i po zavření appky.</p>
-      <p class="help-p"><b>Hlavička</b> — datum, část dne, spánek, pocit, únava, RPE tréninku (viz níže), tělesná váha (předvyplní se z posledního tréninku), volitelně "Navazuje na aktivitu" (např. píšeš trénink co byl po běhu ten samý den) a "Jen krátká pauza" (např. protažení při pauze na Home Office) — je to příznak za celý záznam, ne za jednotlivý sport; takhle označené tréninky appka v Historii zvýrazní (☕ u čísla, přerušovaný rámeček).</p>
+      <p class="help-p"><b>Hlavička</b> — datum, část dne (Ráno/Dopoledne/Odpoledne/Večer), spánek, pocit, únava, RPE tréninku (viz níže), tělesná váha (předvyplní se z posledního tréninku), volitelně "Navazuje na aktivitu" (např. píšeš trénink co byl po běhu ten samý den) a "Jen krátká pauza" (např. protažení při pauze na Home Office) — je to příznak za celý záznam, ne za jednotlivý sport; takhle označené tréninky appka v Historii zvýrazní (☕ u čísla, přerušovaný rámeček). Spánek se při novém záznamu ze stejného dne (např. druhý trénink odpoledne) předvyplní z toho předchozího, ať to nemusíš psát dvakrát — u prvního záznamu nového dne je pole prázdné, protože spánek je logicky jiný.</p>
       <p class="help-p"><b>RPE tréninku (1–10)</b> — jedno číslo za celý trénink, jak blízko selhání jsi byl v nejtěžších sériích (10 = na doraz, nedáš už ani jedno opakování). Appka ti hned ukáže i přepočet na RIR (opakování v rezervě). Je to jiná metrika než Únava — únava je "jak jsem celkově vyřízený", RPE je čistě "jak blízko limitu jsem šel".</p>
       <p class="help-p"><b>Cviky ve skupinách</b> — klepni na skupinu (Bench, Core, Nohy...) a rozbalí se. Ke každému cviku je teď malé vstupní pole "+" na jednu sérii — napíšeš číslo, po ~2,5s ticha (nebo klepnutím jinam / Enterem) se série uloží s přesným časem a pole se vyprázdní na další. Uložené série vidíš jako malé "kostičky" vedle názvu, čas poslední série je vpravo. Tužtičkou ✏️ otevřeš editaci — tam vidíš čas každé série zvlášť, můžeš opravit hodnotu nebo sérii smazat 🗑. Tímto appka sbírá skutečná časová razítka ke každé sérii, ne jen odhad — časem z toho půjde počítat trend výkonu/RPE v průběhu tréninku.</p>
       <p class="help-p"><b>Suunto sken</b> — v sekci "Suunto metriky" nebo přímo u konkrétního sportu je tlačítko na vyfocení/vybrání screenshotu z hodinek. Appka automaticky vytáhne TF, TSS, tempo, převýšení, kadenci, VO2max atd.</p>
@@ -1222,14 +1222,16 @@ function blankRecord(){
   const maxNum = records.reduce((m,r)=> Math.max(m, parseInt(r.meta.trainNum)||0), 0);
   const today = new Date();
   const d = today.toISOString().slice(0,10);
-  const lastWeight = records.length ? (records[records.length-1].meta.weight || "") : "";
+  const lastRecord = records.length ? records[records.length-1] : null;
+  const lastWeight = lastRecord ? (lastRecord.meta.weight || "") : "";
+  const sameDaySleep = (lastRecord && lastRecord.meta.date===d) ? (lastRecord.meta.sleep || "") : "";
   const data = {};
   CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{ data[ex.id] = ex.type==="ladder" ? {} : ""; }));
   const sports = {};
   SPORTS.sports.forEach(sp=>{ sports[sp.id] = {}; SPORT_FIELD_DEFS.forEach(f=> sports[sp.id][f.k] = ""); });
   return {
     id: Date.now(),
-    meta:   fieldsToObj(META_FIELDS,   {trainNum:maxNum+1, date:d, weight:lastWeight}),
+    meta:   fieldsToObj(META_FIELDS,   {trainNum:maxNum+1, date:d, weight:lastWeight, sleep:sameDaySleep}),
     suunto: fieldsToObj(SUUNTO_FIELDS, {}),
     data, sports, setLogs:{}, recordManual:false
   };
@@ -1909,6 +1911,7 @@ function buildMetaGrid(){
       return `<div class="field span2"><label>${f.label}</label>
         <div class="part-toggle" id="partToggle">
           <button type="button" data-val="Ráno" onclick="setPart('Ráno')">🌅 Ráno</button>
+          <button type="button" data-val="Dopoledne" onclick="setPart('Dopoledne')">🌤️ Dopoledne</button>
           <button type="button" data-val="Odpoledne" onclick="setPart('Odpoledne')">☀️ Odpoledne</button>
           <button type="button" data-val="Večer" onclick="setPart('Večer')">🌙 Večer</button>
         </div></div>`;
