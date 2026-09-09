@@ -590,6 +590,22 @@
       <canvas id="chartBloodPressure" height="190" style="margin-top:16px;display:none"></canvas>
       <div id="bpList" style="margin-top:14px"></div>
     </div></div>
+
+    <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">😴 Spánek</div>
+      <div class="section-note" style="margin-top:0">Samostatný log — na rozdíl od spánku u jednotlivého tréninku sem zapisuješ každý den, i ten kdy necvičíš, ať v datech nejsou díry.</div>
+      <div class="bodylog-form">
+        <div class="bodylog-metric-grid">
+          <div class="field"><label>Datum</label><input type="date" id="sleepDate"></div>
+          <div class="field"><label>Hodiny</label><input type="number" step="0.25" inputmode="decimal" id="sleepHours" placeholder="např. 6.5"></div>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Kvalita / odpočatost (1-10)</label><input type="number" step="1" min="1" max="10" inputmode="numeric" id="sleepQuality" placeholder="1 = zničený, 10 = jak znovuzrozený"></div>
+        <div class="field"><label>Poznámka</label><input type="text" id="sleepNote" placeholder="volitelné, např. brzy vstal"></div>
+        <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addSleepEntry()"><span class="ic">💾</span>Přidat záznam</button>
+      </div>
+      <canvas id="chartSleep" height="190" style="margin-top:16px;display:none"></canvas>
+      <div id="sleepList" style="margin-top:14px"></div>
+    </div></div>
   </div>
 
   <div id="helpView" style="display:none">
@@ -644,11 +660,12 @@
       <p class="help-p">Výška, datum narození, pohlaví, klidová TF — appka z toho spočítá věk, BMI (s pásmy podváha/normální/nadváha/obezita), BMR, odhad denní kalorické potřeby a tréninkové zóny tepové frekvence. Váha se bere automaticky z posledního tréninku.</p>
       <p class="help-p"><b>📏 Tělesné míry a fotky</b> — nezávislý periodický log (nemusíš vyplňovat každý trénink, stačí třeba jednou za 1–2 týdny). Zapíšeš obvody (pas, hrudník, paže, stehno, boky) a/nebo přidáš fotky postavy — jeden záznam může mít víc fotek najednou (např. zezadu/zboku/zepředu), appka je sama zmenší a zkomprimuje, ať zbytečně nezabírají místo. Dole vidíš graf vývoje obvodů a chronologický seznam všech záznamů s náhledy fotek (klepnutím na náhled se otevře na celou obrazovku, křížkem u fotky smažeš jen tu jednu fotku). Tužtičkou ✏️ u záznamu jde kdykoliv zpětně opravit datum, míry i poznámku, fotky přitom zůstanou — nemusíš kvůli překlepu mazat celý záznam. Pozor: appka data ukládá jen v telefonu (localStorage), který má omezenou kapacitu — pokud by nešlo uložit další fotku, appka tě na to upozorní; pomůže smazat pár starších fotek nebo použít Zálohu (viz níže), která fotky/míry taky obsahuje.</p>
       <p class="help-p"><b>🩺 Tlak a tep</b> — samostatný log, oddělený od Tělesných měr, protože se měří jinak často (klidně víckrát denně) a je u něj důležitý i přesný čas, ne jen datum. Tlačítko "🕒 Nyní" rovnou vyplní aktuální datum i čas, ať to nemusíš přepisovat ručně — datum/čas si ale klidně uprav, pokud zapisuješ zpětně. Zapíšeš systolu, diastolu a/nebo tep — stačí i jen některé z nich. Měř ideálně vždy ve stejnou dobu a v klidu (ne hned po tréninku), ať je trend mezi měřeními srovnatelný. Graf i tužtička na zpětnou editaci fungují stejně jako u Tělesných měr.</p>
+      <p class="help-p"><b>😴 Spánek</b> — samostatný denní log, nezávislý na tréninku. Rozdíl oproti "Spánek" v Hlavičce tréninku: appka teď u zápisu spánku k tréninku počítá s tím, že to je "kolik jsi spal před tímhle konkrétním cvičením" — pokud ale den vynecháš (a chceš třeba schválně vyspat), do tréninkového deníku se ten den nic nezapíše. Tenhle nový blok je na to, abys spánek zapisoval úplně každý den, ať cvičíš, nebo ne. Kromě hodin appka umí i subjektivní kvalitu/odpočatost (1–10) — hodiny a kvalita spolu nemusí souviset (7 hodin přerušovaného spánku může být horší než 6 hodin v kuse), takže je dobré sledovat obojí zvlášť. V grafu jsou hodiny jako sloupce (červená pod 6h, žlutá 6–7h, zelená 7h+) a kvalita jako fialová přerušovaná čára navrch.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">💾 Záloha dat</div>
-      <p class="help-p">Nahoře v Historii je "💾 Záloha dat" — Export (uloží zálohu jako soubor .txt — je to čitelný text/JSON, appka si s tím poradí, jen kvůli spolehlivějšímu sdílení na Androidu nemá příponu .json) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává, appka přijme jak .txt, tak i starší .json soubory). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené, tělesné míry a fotky i tlak/tep z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
+      <p class="help-p">Nahoře v Historii je "💾 Záloha dat" — Export (uloží zálohu jako soubor .txt — je to čitelný text/JSON, appka si s tím poradí, jen kvůli spolehlivějšímu sdílení na Androidu nemá příponu .json) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává, appka přijme jak .txt, tak i starší .json soubory). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené, tělesné míry a fotky, tlak/tep i spánek z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
     </div></div>
   </div>
 
@@ -673,6 +690,7 @@ const PINNED_KEY = "trenink_pinned_v1";
 const PROFILE_KEY = "trenink_profile_v1";
 const BODYLOG_KEY = "trenink_bodylog_v1";
 const BPLOG_KEY = "trenink_bplog_v1";
+const SLEEPLOG_KEY = "trenink_sleeplog_v1";
 const OLD_RECORDS_KEY_V2 = "trenink_records_v2";
 const OLD_RECORDS_KEY_V1 = "trenink_records_v1";
 
@@ -1253,6 +1271,7 @@ const BODY_METRIC_FIELDS = [
 ];
 let bodyLog = [];
 let bpLog = [];
+let sleepLog = [];
 let pendingBodyPhotos = [];
 function loadBodyLog(){
   try{ bodyLog = JSON.parse(localStorage.getItem(BODYLOG_KEY)) || []; }catch(e){ bodyLog = []; }
@@ -1272,6 +1291,7 @@ function loadBodyLog(){
     }
   });
   if(migrated){ persistBpLog(); persistBodyLog(); }
+  try{ sleepLog = JSON.parse(localStorage.getItem(SLEEPLOG_KEY)) || []; }catch(e){ sleepLog = []; }
 }
 function persistBodyLog(){
   try{ localStorage.setItem(BODYLOG_KEY, JSON.stringify(bodyLog)); return true; }
@@ -1366,6 +1386,120 @@ function renderBpList(){
       </div>` : ""}
     </div>`;
   }).join("");
+}
+
+/* ---- Spánek — samostatný log, nezávislý na tréninku ---- */
+function persistSleepLog(){
+  try{ localStorage.setItem(SLEEPLOG_KEY, JSON.stringify(sleepLog)); return true; }
+  catch(e){ return false; }
+}
+function sortSleepLog(){ sleepLog.sort((a,b)=> (a.date||"").localeCompare(b.date||"")); }
+function clearSleepForm(){
+  const h = document.getElementById("sleepHours"); if(h) h.value = "";
+  const q = document.getElementById("sleepQuality"); if(q) q.value = "";
+  const n = document.getElementById("sleepNote"); if(n) n.value = "";
+  const d = document.getElementById("sleepDate"); if(d) d.value = new Date().toISOString().slice(0,10);
+}
+function addSleepEntry(){
+  const date = document.getElementById("sleepDate").value || new Date().toISOString().slice(0,10);
+  const hours = document.getElementById("sleepHours").value;
+  const quality = document.getElementById("sleepQuality").value;
+  const note = document.getElementById("sleepNote").value;
+  if(hours==="" && quality==="" && !note.trim()){ showToast("Vyplň aspoň hodiny nebo kvalitu"); return; }
+  const entry = { id: Date.now(), date };
+  if(hours!=="") entry.hours = parseFloat(hours);
+  if(quality!=="") entry.quality = parseFloat(quality);
+  if(note.trim()) entry.note = note.trim();
+  sleepLog.push(entry);
+  sortSleepLog();
+  persistSleepLog();
+  clearSleepForm();
+  renderSleepList();
+  renderSleepChart();
+  showToast("Záznam přidán");
+}
+let editingSleepId = null;
+function toggleSleepEdit(id){ editingSleepId = editingSleepId===id ? null : id; renderSleepList(); }
+function saveSleepEdit(id){
+  const e = sleepLog.find(x=>x.id===id); if(!e) return;
+  const dEl = document.getElementById("sleepEditDate_"+id); if(dEl && dEl.value) e.date = dEl.value;
+  const hEl = document.getElementById("sleepEditHours_"+id); if(hEl){ if(hEl.value!=="") e.hours=parseFloat(hEl.value); else delete e.hours; }
+  const qEl = document.getElementById("sleepEditQuality_"+id); if(qEl){ if(qEl.value!=="") e.quality=parseFloat(qEl.value); else delete e.quality; }
+  const nEl = document.getElementById("sleepEditNote_"+id); if(nEl){ if(nEl.value.trim()) e.note=nEl.value.trim(); else delete e.note; }
+  sortSleepLog();
+  persistSleepLog();
+  editingSleepId = null;
+  renderSleepList();
+  renderSleepChart();
+  showToast("Záznam upraven");
+}
+function deleteSleepEntry(id){
+  if(!confirm("Smazat tento záznam spánku?")) return;
+  sleepLog = sleepLog.filter(x=>x.id!==id);
+  persistSleepLog();
+  renderSleepList();
+  renderSleepChart();
+}
+function renderSleepList(){
+  const host = document.getElementById("sleepList");
+  if(!host) return;
+  if(sleepLog.length===0){ host.innerHTML = `<div class="section-note">Zatím žádné záznamy.</div>`; return; }
+  const sorted = [...sleepLog].sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+  host.innerHTML = sorted.map(e=>{
+    const parts = [];
+    if(e.hours!=null) parts.push(e.hours+" h");
+    if(e.quality!=null) parts.push("kvalita "+e.quality+"/10");
+    if(e.note) parts.push(e.note);
+    const summary = parts.length ? parts.join(" · ") : "–";
+    return `<div class="bodylog-row-wrap">
+      <div class="bodylog-row">
+        <div class="bodylog-info">
+          <div class="bodylog-date">${formatDateDisplay(e.date)}</div>
+          <div class="bodylog-metrics">${summary}</div>
+        </div>
+        <button type="button" class="bodylog-edit" onclick="toggleSleepEdit(${e.id})" title="Upravit">✏️</button>
+        <button type="button" class="bodylog-del" onclick="deleteSleepEntry(${e.id})">🗑</button>
+      </div>
+      ${editingSleepId===e.id ? `
+      <div class="bodylog-edit-panel">
+        <div class="measure-fields">
+          <div class="measure-field"><label>Datum</label><input type="date" id="sleepEditDate_${e.id}" value="${e.date||''}"></div>
+          <div class="measure-field"><label>Hodiny</label><input type="number" step="0.25" inputmode="decimal" id="sleepEditHours_${e.id}" value="${e.hours??''}"></div>
+          <div class="measure-field"><label>Kvalita (1-10)</label><input type="number" step="1" min="1" max="10" inputmode="numeric" id="sleepEditQuality_${e.id}" value="${e.quality??''}"></div>
+        </div>
+        <div class="field" style="margin-top:8px"><label>Poznámka</label><input type="text" id="sleepEditNote_${e.id}" value="${e.note||''}"></div>
+        <button type="button" class="btn btn-secondary" style="width:100%;margin-top:6px" onclick="saveSleepEdit(${e.id})">💾 Uložit úpravu</button>
+      </div>` : ""}
+    </div>`;
+  }).join("");
+}
+let chartSleepInstance = null;
+function renderSleepChart(){
+  const canvas = document.getElementById("chartSleep");
+  if(!canvas) return;
+  const sorted = [...sleepLog].filter(e=>e.date && (e.hours!=null || e.quality!=null)).sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+  if(chartSleepInstance){ chartSleepInstance.destroy(); chartSleepInstance = null; }
+  canvas.style.display = sorted.length ? "" : "none";
+  if(!sorted.length) return;
+  const labels = sorted.map(e=> formatDateDisplay(e.date));
+  const isLight = document.body.getAttribute("data-theme")==="light";
+  const textColor = isLight ? "#52514e" : "#c8c6c0";
+  const gridColor = isLight ? "#e1e0d9" : "#3a3835";
+  chartSleepInstance = new Chart(canvas.getContext("2d"), {
+    data:{ labels, datasets:[
+      { type:"bar", label:"Spánek (h)", data: sorted.map(e=> e.hours ?? null), backgroundColor: sorted.map(e=> e.hours==null ? "#88888844" : (e.hours<6 ? "#e5484d" : (e.hours<7 ? "#f2b134" : "#7ed957"))), yAxisID:"y" },
+      { type:"line", label:"Kvalita (1-10)", data: sorted.map(e=> e.quality ?? null), borderColor:"#a970ff", backgroundColor:"#a970ff", yAxisID:"y1", tension:0.25, spanGaps:true, borderDash:[5,3] }
+    ]},
+    options:{
+      responsive:true,
+      plugins:{ legend:{ labels:{ color:textColor, font:{size:10} } } },
+      scales:{
+        x:{ ticks:{ color:textColor, font:{size:9} }, grid:{ color:gridColor } },
+        y:{ position:"left", min:0, ticks:{ color:textColor, font:{size:9} }, grid:{ color:gridColor }, title:{ display:true, text:"hodiny", color:textColor } },
+        y1:{ position:"right", min:0, max:10, ticks:{ color:textColor, font:{size:9} }, grid:{ display:false }, title:{ display:true, text:"kvalita 1-10", color:textColor } }
+      }
+    }
+  });
 }
 function handleBodyPhotoPick(inputEl, previewHostId){
   const files = inputEl.files ? Array.from(inputEl.files) : [];
@@ -1621,10 +1755,14 @@ function calcHRZones(){
 function renderProfileView(){
   const dateEl = document.getElementById("bodyLogDate");
   if(dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
+  const sleepDateEl = document.getElementById("sleepDate");
+  if(sleepDateEl && !sleepDateEl.value) sleepDateEl.value = new Date().toISOString().slice(0,10);
   renderBodyLogList();
   renderBodyMetricsChart();
   renderBpList();
   renderBloodPressureChart();
+  renderSleepList();
+  renderSleepChart();
   const statsHost = document.getElementById("profileStats");
   const age = getAge();
   const bmi = calcBMI();
@@ -3318,7 +3456,7 @@ function backupFromBanner(){
 }
 
 function exportBackup(){
-  const backup = { exportedAt: new Date().toISOString(), appVersion: 7, config: CONFIG, sports: SPORTS, records: records, profile: PROFILE, pinned: pinnedRows, bodyLog: bodyLog, bpLog: bpLog };
+  const backup = { exportedAt: new Date().toISOString(), appVersion: 7, config: CONFIG, sports: SPORTS, records: records, profile: PROFILE, pinned: pinnedRows, bodyLog: bodyLog, bpLog: bpLog, sleepLog: sleepLog };
   const json = JSON.stringify(backup, null, 2);
   const filename = `trenink_zaloha_${new Date().toISOString().slice(0,10)}.txt`;
   const blob = new Blob([json], {type:"text/plain"});
@@ -3377,6 +3515,12 @@ function importBackupFile(inputEl){
         data.bpLog.forEach(e=>{ if(!existingBpIds.has(e.id)) bpLog.push(e); });
         sortBpLog();
         persistBpLog();
+      }
+      if(data.sleepLog && Array.isArray(data.sleepLog)){
+        const existingSleepIds = new Set(sleepLog.map(e=>e.id));
+        data.sleepLog.forEach(e=>{ if(!existingSleepIds.has(e.id)) sleepLog.push(e); });
+        sortSleepLog();
+        persistSleepLog();
       }
       if(data.records && Array.isArray(data.records)){
         const byId = {}; records.forEach(r=> byId[r.id]=r);
