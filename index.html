@@ -137,7 +137,12 @@
   .bodylog-metrics{font-size:0.76rem;color:var(--muted);font-family:var(--mono);margin-top:2px;}
   .bodylog-note{font-size:0.76rem;color:var(--faint);margin-top:2px;font-style:italic;}
   .bodylog-del{flex:none;background:none;border:none;color:var(--faint);font-size:0.95rem;padding:4px 6px;cursor:pointer;}
-  .pinned-item{display:flex;align-items:stretch;gap:2px;}
+  .pinned-item{display:flex;align-items:stretch;gap:2px;border-left:3px solid transparent;border-radius:8px;}
+  .pinned-item.grp-g_strength{border-left-color:#ff6b5b;background:linear-gradient(90deg,#ff6b5b1c,transparent 45%);}
+  .pinned-item.grp-g_upper{border-left-color:#5b9bff;background:linear-gradient(90deg,#5b9bff1c,transparent 45%);}
+  .pinned-item.grp-g_core{border-left-color:#b06bff;background:linear-gradient(90deg,#b06bff1c,transparent 45%);}
+  .pinned-item.grp-g_legs{border-left-color:#5bd97e;background:linear-gradient(90deg,#5bd97e1c,transparent 45%);}
+  .pinned-item.grp-g_calis{border-left-color:#f2b134;background:linear-gradient(90deg,#f2b1341c,transparent 45%);}
   .pinned-move{flex:none;display:flex;flex-direction:column;justify-content:center;}
   .pinned-move .cfg-move{padding:8px 10px;line-height:1;font-size:1.35rem;color:var(--text);}
   .pinned-row-inner{flex:1;min-width:0;}
@@ -1952,8 +1957,16 @@ function renderPinnedSection(){
   // Pro AKTUÁLNÍ trénink: cviky, do kterých už je zapsaná aspoň jedna série, se zobrazí nahoře (ať nemusíš rolovat
   // k ještě nevyplněným). Trvalé pořadí nastavené šipkami (pinnedRows) se tím nemění — je to jen zobrazení pro tuto session.
   // U nového/jiného tréninku, kde nic zapsáno není, se tak automaticky zobrazí přesně tvoje uložené pořadí.
+  // Vyplněné se navíc řadí podle času PRVNÍ zapsané série v tomhle tréninku (ne podle trvalého pořadí) — díky tomu
+  // se cviky ze dvou (nebo víc) kol/sad samy seskupí v pořadí, v jakém jsi je reálně dělal, místo aby se promíchaly.
   const filled = [], unfilled = [];
   pinnedRows.forEach(key=> (getSetLogs(current, key).length>0 ? filled : unfilled).push(key));
+  const firstTs = key=>{
+    const logs = getSetLogs(current, key);
+    const stamps = logs.map(s=> s.ts ? new Date(s.ts).getTime() : NaN).filter(t=>!isNaN(t));
+    return stamps.length ? Math.min(...stamps) : Infinity;
+  };
+  filled.sort((a,b)=> firstTs(a)-firstTs(b) || pinnedRows.indexOf(a)-pinnedRows.indexOf(b));
   const effectiveOrder = [...filled, ...unfilled];
 
   effectiveOrder.forEach(key=>{
@@ -1964,7 +1977,8 @@ function renderPinnedSection(){
     if(!ex) return;
     const baseIdx = pinnedRows.indexOf(key);
     const holder = document.createElement("div");
-    holder.className = "pinned-item";
+    const grpId = groupIdOfExercise(exId);
+    holder.className = "pinned-item" + (grpId ? " grp-"+grpId : "");
     holder.dataset.key = key;
     const moveBtns = document.createElement("span");
     moveBtns.className = "pinned-move";
