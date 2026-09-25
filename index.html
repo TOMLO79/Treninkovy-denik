@@ -534,78 +534,93 @@
   <!-- ============ PROFIL VIEW ============ -->
   <div id="profileView" style="display:none">
     <h3 style="margin:6px 0 10px">🧍 Osobní karta</h3>
-    <div class="cfg-hint">Váha se nepřidává tady — bere se automaticky z posledního zapsaného tréninku.</div>
-    <div class="section"><div class="section-body-inner meta-grid" id="profileGrid"></div></div>
-    <div class="section"><div class="section-body-inner">
-      <div class="subgroup-title" style="margin-top:0">Vyhodnocení</div>
-      <div id="profileStats"></div>
-    </div></div>
-    <div class="section"><div class="section-body-inner">
-      <div class="subgroup-title" style="margin-top:0">Tréninkové zóny tepové frekvence</div>
-      <div class="section-note" style="margin-top:0" id="profileZoneNote"></div>
-      <div id="profileZones"></div>
-    </div></div>
+    <div class="nav-toggle" style="margin-bottom:12px;width:100%">
+      <button id="profileTabOverviewBtn" class="active" style="flex:1" onclick="setProfileSubTab('overview')">🧍 Přehled</button>
+      <button id="profileTabBodyBtn" style="flex:1" onclick="setProfileSubTab('body')">📏 Tělo</button>
+      <button id="profileTabSleepBtn" style="flex:1" onclick="setProfileSubTab('sleep')">😴 Spánek</button>
+      <button id="profileTabHealthBtn" style="flex:1" onclick="setProfileSubTab('health')">🩺 Zdraví</button>
+    </div>
 
-    <div class="section"><div class="section-body-inner">
-      <div class="subgroup-title" style="margin-top:0">📏 Tělesné míry a fotky</div>
-      <div class="section-note" style="margin-top:0">Volitelné — obvody a fotka pro sledování trendu postavy. Nezávislé na jednotlivých trénincích, zadávej třeba jednou za 1–2 týdny.</div>
-      <div class="bodylog-form">
-        <div class="field"><label>Datum</label><input type="date" id="bodyLogDate"></div>
-        <div class="bodylog-metric-grid">
-          <div class="field"><label>Pas (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_waist" placeholder="cm"></div>
-          <div class="field"><label>Hrudník (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_chest" placeholder="cm"></div>
-          <div class="field"><label>Paže (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_arm" placeholder="cm"></div>
-          <div class="field"><label>Stehno (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_thigh" placeholder="cm"></div>
-          <div class="field"><label>Boky (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_hip" placeholder="cm"></div>
-        </div>
-        <div class="field"><label>Poznámka</label><input type="text" id="bodyLogNote" placeholder="volitelné"></div>
-        <div class="field">
-          <label>Fotka</label>
-          <input type="file" accept="image/*" multiple id="bodyLogPhotoInput" class="bodylog-file" onchange="handleBodyPhotoPick(this,'bodyLogPhotoPreview')">
-          <div class="cfg-hint" style="margin:4px 0 0">Můžeš vybrat víc fotek najednou (zezadu/zboku/zepředu), nebo přidávat postupně — pole při dalším výběru nemaže ty předchozí.</div>
-          <div id="bodyLogPhotoPreview" class="bodylog-pending"></div>
-        </div>
-        <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addBodyLogEntry()"><span class="ic">💾</span>Přidat záznam</button>
-      </div>
-      <canvas id="chartBodyMetrics" height="190" style="margin-top:16px"></canvas>
-      <div id="bodyLogList" style="margin-top:14px"></div>
-    </div></div>
+    <div id="profileSubTab_overview">
+      <div class="cfg-hint">Váha se nepřidává tady — bere se automaticky z posledního zapsaného tréninku.</div>
+      <div class="section"><div class="section-body-inner meta-grid" id="profileGrid"></div></div>
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">Vyhodnocení</div>
+        <div id="profileStats"></div>
+      </div></div>
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">Tréninkové zóny tepové frekvence</div>
+        <div class="section-note" style="margin-top:0" id="profileZoneNote"></div>
+        <div id="profileZones"></div>
+      </div></div>
+    </div>
 
-    <div class="section"><div class="section-body-inner">
-      <div class="subgroup-title" style="margin-top:0">🩺 Tlak a tep</div>
-      <div class="section-note" style="margin-top:0">Krevní tlak a tep — samostatný log s vlastním datem i časem (klidně víckrát denně). Měř ideálně vždy ve stejnou dobu a v klidu, ať je trend srovnatelný.</div>
-      <div class="bodylog-form">
-        <div class="bodylog-metric-grid">
-          <div class="field"><label>Datum</label><input type="date" id="bpDate"></div>
-          <div class="field"><label>Čas</label><input type="time" id="bpTime"></div>
+    <div id="profileSubTab_body" style="display:none">
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">📏 Tělesné míry a fotky</div>
+        <div class="section-note" style="margin-top:0">Volitelné — obvody a fotka pro sledování trendu postavy. Nezávislé na jednotlivých trénincích, zadávej třeba jednou za 1–2 týdny.</div>
+        <div class="bodylog-form">
+          <div class="field"><label>Datum</label><input type="date" id="bodyLogDate"></div>
+          <div class="bodylog-metric-grid">
+            <div class="field"><label>Pas (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_waist" placeholder="cm"></div>
+            <div class="field"><label>Hrudník (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_chest" placeholder="cm"></div>
+            <div class="field"><label>Paže (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_arm" placeholder="cm"></div>
+            <div class="field"><label>Stehno (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_thigh" placeholder="cm"></div>
+            <div class="field"><label>Boky (cm)</label><input type="number" step="0.1" inputmode="decimal" id="bodyMetric_hip" placeholder="cm"></div>
+          </div>
+          <div class="field"><label>Poznámka</label><input type="text" id="bodyLogNote" placeholder="volitelné"></div>
+          <div class="field">
+            <label>Fotka</label>
+            <input type="file" accept="image/*" multiple id="bodyLogPhotoInput" class="bodylog-file" onchange="handleBodyPhotoPick(this,'bodyLogPhotoPreview')">
+            <div class="cfg-hint" style="margin:4px 0 0">Můžeš vybrat víc fotek najednou (zezadu/zboku/zepředu), nebo přidávat postupně — pole při dalším výběru nemaže ty předchozí.</div>
+            <div id="bodyLogPhotoPreview" class="bodylog-pending"></div>
+          </div>
+          <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addBodyLogEntry()"><span class="ic">💾</span>Přidat záznam</button>
         </div>
-        <button type="button" class="btn-mini" style="width:100%" onclick="fillBpNow()">🕒 Nyní (vyplnit datum i čas)</button>
-        <div class="bodylog-metric-grid" style="margin-top:10px">
-          <div class="field"><label>Systola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bpSysInput" placeholder="např. 128"></div>
-          <div class="field"><label>Diastola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bpDiaInput" placeholder="např. 82"></div>
-          <div class="field"><label>Tep (bpm)</label><input type="number" step="1" inputmode="numeric" id="bpPulseInput" placeholder="např. 68"></div>
-        </div>
-        <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addBpEntry()"><span class="ic">💾</span>Přidat záznam</button>
-      </div>
-      <canvas id="chartBloodPressure" height="190" style="margin-top:16px;display:none"></canvas>
-      <div id="bpList" style="margin-top:14px"></div>
-    </div></div>
+        <canvas id="chartBodyMetrics" height="190" style="margin-top:16px"></canvas>
+        <div id="bodyLogList" style="margin-top:14px"></div>
+      </div></div>
+    </div>
 
-    <div class="section"><div class="section-body-inner">
-      <div class="subgroup-title" style="margin-top:0">😴 Spánek</div>
-      <div class="section-note" style="margin-top:0">Samostatný log — na rozdíl od spánku u jednotlivého tréninku sem zapisuješ každý den, i ten kdy necvičíš, ať v datech nejsou díry.</div>
-      <div class="bodylog-form">
-        <div class="bodylog-metric-grid">
-          <div class="field"><label>Datum</label><input type="date" id="sleepDate"></div>
-          <div class="field"><label>Hodiny</label><input type="number" step="0.25" inputmode="decimal" id="sleepHours" placeholder="např. 6.5"></div>
+    <div id="profileSubTab_sleep" style="display:none">
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">😴 Spánek</div>
+        <div class="section-note" style="margin-top:0">Samostatný log — na rozdíl od spánku u jednotlivého tréninku sem zapisuješ každý den, i ten kdy necvičíš, ať v datech nejsou díry.</div>
+        <div class="bodylog-form">
+          <div class="bodylog-metric-grid">
+            <div class="field"><label>Datum</label><input type="date" id="sleepDate"></div>
+            <div class="field"><label>Hodiny</label><input type="number" step="0.25" inputmode="decimal" id="sleepHours" placeholder="např. 6.5"></div>
+          </div>
+          <div class="field" style="margin-top:10px"><label>Kvalita / odpočatost (1-10)</label><input type="number" step="1" min="1" max="10" inputmode="numeric" id="sleepQuality" placeholder="1 = zničený, 10 = jak znovuzrozený"></div>
+          <div class="field"><label>Poznámka</label><input type="text" id="sleepNote" placeholder="volitelné, např. brzy vstal"></div>
+          <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addSleepEntry()"><span class="ic">💾</span>Přidat záznam</button>
         </div>
-        <div class="field" style="margin-top:10px"><label>Kvalita / odpočatost (1-10)</label><input type="number" step="1" min="1" max="10" inputmode="numeric" id="sleepQuality" placeholder="1 = zničený, 10 = jak znovuzrozený"></div>
-        <div class="field"><label>Poznámka</label><input type="text" id="sleepNote" placeholder="volitelné, např. brzy vstal"></div>
-        <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addSleepEntry()"><span class="ic">💾</span>Přidat záznam</button>
-      </div>
-      <canvas id="chartSleep" height="190" style="margin-top:16px;display:none"></canvas>
-      <div id="sleepList" style="margin-top:14px"></div>
-    </div></div>
+        <canvas id="chartSleep" height="190" style="margin-top:16px;display:none"></canvas>
+        <div id="sleepList" style="margin-top:14px"></div>
+      </div></div>
+    </div>
+
+    <div id="profileSubTab_health" style="display:none">
+      <div class="section"><div class="section-body-inner">
+        <div class="subgroup-title" style="margin-top:0">🩺 Tlak a tep</div>
+        <div class="section-note" style="margin-top:0">Krevní tlak a tep — samostatný log s vlastním datem i časem (klidně víckrát denně). Měř ideálně vždy ve stejnou dobu a v klidu, ať je trend srovnatelný.</div>
+        <div class="bodylog-form">
+          <div class="bodylog-metric-grid">
+            <div class="field"><label>Datum</label><input type="date" id="bpDate"></div>
+            <div class="field"><label>Čas</label><input type="time" id="bpTime"></div>
+          </div>
+          <button type="button" class="btn-mini" style="width:100%" onclick="fillBpNow()">🕒 Nyní (vyplnit datum i čas)</button>
+          <div class="bodylog-metric-grid" style="margin-top:10px">
+            <div class="field"><label>Systola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bpSysInput" placeholder="např. 128"></div>
+            <div class="field"><label>Diastola (mmHg)</label><input type="number" step="1" inputmode="numeric" id="bpDiaInput" placeholder="např. 82"></div>
+            <div class="field"><label>Tep (bpm)</label><input type="number" step="1" inputmode="numeric" id="bpPulseInput" placeholder="např. 68"></div>
+          </div>
+          <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addBpEntry()"><span class="ic">💾</span>Přidat záznam</button>
+        </div>
+        <canvas id="chartBloodPressure" height="190" style="margin-top:16px;display:none"></canvas>
+        <div id="bpList" style="margin-top:14px"></div>
+      </div></div>
+    </div>
   </div>
 
   <div id="helpView" style="display:none">
@@ -637,7 +652,7 @@
 
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">🏃 Sporty</div>
-      <p class="help-p">Podobný editor jako Cviky, ale pro sportovní aktivity (Běh, Capoeira, Strečink...). Vybíráš, která pole se mají sledovat (vzdálenost, tempo, TF, VO2max...). U Běhu appka umí i "Váha před" a "Váha po" — "Váha před" se sama předvyplní z hlavičkové váhy nahoře (nemusíš ji zadávat dvakrát, ale klidně ji přepiš, pokud se před tím ještě zvážíš zvlášť), doplňuješ tak jen "Váhu po". Appka z rozdílu spočítá odhad úbytku tekutin (v gramech). Nový sport přidáš tlačítkem dole.</p>
+      <p class="help-p">Podobný editor jako Cviky, ale pro sportovní aktivity (Běh, Capoeira, Strečink, Práce doma...). Vybíráš, která pole se mají sledovat (vzdálenost, tempo, TF, VO2max...). U Běhu appka umí i "Váha před" a "Váha po" — "Váha před" se sama předvyplní z hlavičkové váhy nahoře (nemusíš ji zadávat dvakrát, ale klidně ji přepiš, pokud se před tím ještě zvážíš zvlášť), doplňuješ tak jen "Váhu po". Appka z rozdílu spočítá odhad úbytku tekutin (v gramech). U Běhu je i zaškrtávátko "Závod" — označíš tím, že to nebyl běžný trénink, ale závod (hodí se to při pohledu zpátky do Historie, ať víš, který výkon srovnávat s kterým). "Práce doma" je vlastní sport na fyzickou zátěž mimo trénink (brigáda na zahradě, štípání dřeva, míchání betonu apod.) — jen Doba trvání a Poznámka (co jsi dělal); hodí se to hlavně proto, aby ses při pohledu na únavu/RPE nedivil, proč je vysoká i v den, kdy jsi podle appky "necvičil". Nový sport přidáš tlačítkem dole.</p>
     </div></div>
 
     <div class="section"><div class="section-body-inner">
@@ -691,20 +706,21 @@ const PROFILE_KEY = "trenink_profile_v1";
 const BODYLOG_KEY = "trenink_bodylog_v1";
 const BPLOG_KEY = "trenink_bplog_v1";
 const SLEEPLOG_KEY = "trenink_sleeplog_v1";
+const HOUSEWORK_KEY = "trenink_housework_v1";
 const OLD_RECORDS_KEY_V2 = "trenink_records_v2";
 const OLD_RECORDS_KEY_V1 = "trenink_records_v1";
 
 function defaultConfig(){
   return {
-    version: 10,
+    version: 11,
     groups: [
       { id:"g_strength", icon:"🏋️", title:"Hlavní síla", exercises:[
-        { id:"e_bench", label:"Bench", type:"ladder", weights:[40,45,50,55,60,65,70,75,80,85,90,95,100], muscle:"chest", secondary:["triceps","shoulders"] },
+        { id:"e_bench", label:"Bench", type:"ladder", weights:[40,45,50,55,60,62.5,65,67.5,70,72.5,75,77.5,80,82.5,85,87.5,90,92.5,95,97.5,100], muscle:"chest", secondary:["triceps","shoulders"] },
         { id:"e_bench_db", label:"Bench s jednoručkami", type:"ladder", weights:[20,24,28.4,32,36,40,44,48], muscle:"chest", secondary:["triceps","shoulders"] },
         { id:"e_deadlift", label:"Mrtvý tah", type:"ladder", weights:[60,65,70,75,80,85,90,95,100,105,110], muscle:"back", secondary:["hamstrings","glutes","forearms"] }
       ]},
       { id:"g_upper", icon:"💪", title:"OH press & doplňky", exercises:[
-        { id:"e_ohp", label:"OH press", type:"ladder", weights:[30,35,40,45,50], muscle:"shoulders" },
+        { id:"e_ohp", label:"OH press", type:"ladder", weights:[30,35,40,42.5,45,47.5,50], muscle:"shoulders" },
         { id:"e_upper_klik", label:"Klik (základní)", type:"bodyweight", coef:0.65, muscle:"chest", secondary:["triceps","shoulders"] },
         { id:"e_ohp_uzko", label:"Kliky na úzko", type:"bodyweight", coef:0.65, muscle:"triceps" },
         { id:"e_ohp_siroko", label:"Kliky na široko", type:"bodyweight", coef:0.65, muscle:"chest" },
@@ -931,6 +947,16 @@ function upgradeConfigToV10(cfg){
   }
   cfg.version = 10;
 }
+function upgradeConfigToV11(cfg){
+  // vygenerování jemnějších žebříčků vah — Bench po 2,5 kg od 60 kg výš, OHP po 2,5 kg od 40 kg výš
+  const strength = cfg.groups.find(g=>g.id==="g_strength");
+  const bench = strength && strength.exercises.find(e=>e.id==="e_bench");
+  if(bench && bench.type==="ladder") bench.weights = [40,45,50,55,60,62.5,65,67.5,70,72.5,75,77.5,80,82.5,85,87.5,90,92.5,95,97.5,100];
+  const upper = cfg.groups.find(g=>g.id==="g_upper");
+  const ohp = upper && upper.exercises.find(e=>e.id==="e_ohp");
+  if(ohp && ohp.type==="ladder") ohp.weights = [30,35,40,42.5,45,47.5,50];
+  cfg.version = 11;
+}
 
 const SPORT_FIELD_DEFS = [
   {k:"duration", label:"Doba trvání (min)", type:"text"},
@@ -944,12 +970,15 @@ const SPORT_FIELD_DEFS = [
   {k:"vo2max", label:"Odhad VO2max", type:"text"},
   {k:"weightBefore", label:"Váha před (kg)", type:"number"},
   {k:"weightAfter", label:"Váha po (kg)", type:"number"},
+  {k:"isRace", label:"Závod", type:"checkbox"},
+  {k:"note", label:"Poznámka", type:"text"},
 ];
 function defaultSports(){
-  return { version:5, sports:[
-    { id:"s_run", icon:"🏃", title:"Běh", fields:["duration","km","tempo","elevation","steps","vo2max","weightBefore","weightAfter"] },
+  return { version:7, sports:[
+    { id:"s_run", icon:"🏃", title:"Běh", fields:["duration","km","tempo","elevation","steps","vo2max","weightBefore","weightAfter","isRace"] },
     { id:"s_capoeira", icon:"🤸", title:"Capoeira", fields:["duration","hrAvg","hrMax"] },
-    { id:"s_stretch", icon:"🧘", title:"Strečink", fields:["duration","hrAvg","hrMax","tss"] }
+    { id:"s_stretch", icon:"🧘", title:"Strečink", fields:["duration","hrAvg","hrMax","tss"] },
+    { id:"s_housework", icon:"🏗️", title:"Práce doma", fields:["duration","note"] }
   ]};
 }
 function upgradeSportsToV2(sp){
@@ -976,6 +1005,17 @@ function upgradeSportsToV5(sp){
     sp.sports.push({ id:"s_stretch", icon:"🧘", title:"Strečink", fields:["duration","hrAvg","hrMax","tss"] });
   }
   sp.version = 5;
+}
+function upgradeSportsToV6(sp){
+  const run = sp.sports.find(s=>s.id==="s_run");
+  if(run && !run.fields.includes("isRace")) run.fields.push("isRace");
+  sp.version = 6;
+}
+function upgradeSportsToV7(sp){
+  if(!sp.sports.some(s=>s.id==="s_housework")){
+    sp.sports.push({ id:"s_housework", icon:"🏗️", title:"Práce doma", fields:["duration","note"] });
+  }
+  sp.version = 7;
 }
 
 const META_FIELDS = [
@@ -1137,6 +1177,7 @@ function loadConfig(){
     if(CONFIG.version < 8) upgradeConfigToV8(CONFIG);
     if(CONFIG.version < 9) upgradeConfigToV9(CONFIG);
     if(CONFIG.version < 10) upgradeConfigToV10(CONFIG);
+    if(CONFIG.version < 11) upgradeConfigToV11(CONFIG);
   }
   persistConfig();
 }
@@ -1150,6 +1191,8 @@ function loadSports(){
     if(SPORTS.version < 3) upgradeSportsToV3(SPORTS);
     if(SPORTS.version < 4) upgradeSportsToV4(SPORTS);
     if(SPORTS.version < 5) upgradeSportsToV5(SPORTS);
+    if(SPORTS.version < 6) upgradeSportsToV6(SPORTS);
+    if(SPORTS.version < 7) upgradeSportsToV7(SPORTS);
   }
   persistSports();
 }
@@ -1274,6 +1317,7 @@ const BODY_METRIC_FIELDS = [
 let bodyLog = [];
 let bpLog = [];
 let sleepLog = [];
+let houseworkLog = [];
 let pendingBodyPhotos = [];
 function loadBodyLog(){
   try{ bodyLog = JSON.parse(localStorage.getItem(BODYLOG_KEY)) || []; }catch(e){ bodyLog = []; }
@@ -1294,6 +1338,7 @@ function loadBodyLog(){
   });
   if(migrated){ persistBpLog(); persistBodyLog(); }
   try{ sleepLog = JSON.parse(localStorage.getItem(SLEEPLOG_KEY)) || []; }catch(e){ sleepLog = []; }
+  try{ houseworkLog = JSON.parse(localStorage.getItem(HOUSEWORK_KEY)) || []; }catch(e){ houseworkLog = []; }
 }
 function persistBodyLog(){
   try{ localStorage.setItem(BODYLOG_KEY, JSON.stringify(bodyLog)); return true; }
@@ -1502,6 +1547,41 @@ function renderSleepChart(){
       }
     }
   });
+}
+
+/* ---- Práce doma — přesunuto: teď je to sport (viz SPORTS/s_housework). ---- */
+/* Zachováno jen kvůli jednorázové migraci starých samostatných záznamů do plnohodnotných tréninkových záznamů. */
+function persistHouseworkLog(){
+  try{ localStorage.setItem(HOUSEWORK_KEY, JSON.stringify(houseworkLog)); return true; }
+  catch(e){ return false; }
+}
+function migrateHouseworkLogToRecords(){
+  if(!houseworkLog || houseworkLog.length===0) return;
+  const sorted = [...houseworkLog].sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+  sorted.forEach(entry=>{
+    const maxNum = records.reduce((m,r)=> Math.max(m, parseInt(r.meta.trainNum)||0), 0);
+    const data = {};
+    CONFIG.groups.forEach(g=> g.exercises.forEach(ex=>{ data[ex.id] = ex.type==="ladder" ? {} : ""; }));
+    const sports = {};
+    SPORTS.sports.forEach(sp=>{ sports[sp.id] = {}; SPORT_FIELD_DEFS.forEach(f=> sports[sp.id][f.k] = ""); });
+    if(sports["s_housework"]){
+      if(entry.duration!=null) sports["s_housework"].duration = String(entry.duration);
+      if(entry.note) sports["s_housework"].note = entry.note;
+    }
+    records.push({
+      id: Date.now()+Math.floor(Math.random()*1000),
+      meta: fieldsToObj(META_FIELDS, {trainNum:maxNum+1, date: entry.date||new Date().toISOString().slice(0,10), weight:""}),
+      suunto: fieldsToObj(SUUNTO_FIELDS, {}),
+      data, sports, setLogs:{}, recordManual:false
+    });
+  });
+  // po vložení zpětných záznamů srovnáme celé pole podle data, ať "poslední trénink" i pořadí v Historii
+  // odpovídají realitě, ne jen pořadí vložení
+  records.sort((a,b)=> (a.meta.date||"").localeCompare(b.meta.date||"") || (parseInt(a.meta.trainNum)||0)-(parseInt(b.meta.trainNum)||0));
+  records.forEach((r,i)=> r.meta.trainNum = i+1);
+  persistRecords();
+  houseworkLog = [];
+  persistHouseworkLog();
 }
 function handleBodyPhotoPick(inputEl, previewHostId){
   const files = inputEl.files ? Array.from(inputEl.files) : [];
@@ -1753,6 +1833,22 @@ function calcHRZones(){
     const hi = hrRest ? Math.round(hrRest + z.hi*(hrMax-hrRest)) : Math.round(hrMax*z.hi);
     return {...z, lo, hi};
   })};
+}
+let profileSubTab = "overview";
+function setProfileSubTab(tab){
+  profileSubTab = tab;
+  ["overview","body","sleep","health"].forEach(t=>{
+    const el = document.getElementById("profileSubTab_"+t);
+    if(el) el.style.display = (t===tab) ? "" : "none";
+  });
+  document.getElementById("profileTabOverviewBtn").classList.toggle("active", tab==="overview");
+  document.getElementById("profileTabBodyBtn").classList.toggle("active", tab==="body");
+  document.getElementById("profileTabSleepBtn").classList.toggle("active", tab==="sleep");
+  document.getElementById("profileTabHealthBtn").classList.toggle("active", tab==="health");
+  // grafy (Chart.js) potřebují viditelné plátno pro správné rozměry — po přepnutí je přerendrujeme
+  if(tab==="body") renderBodyMetricsChart();
+  if(tab==="sleep") renderSleepChart();
+  if(tab==="health") renderBloodPressureChart();
 }
 function renderProfileView(){
   const dateEl = document.getElementById("bodyLogDate");
@@ -3525,12 +3621,17 @@ function importBackupFile(inputEl){
         sortSleepLog();
         persistSleepLog();
       }
+      if(data.houseworkLog && Array.isArray(data.houseworkLog) && data.houseworkLog.length){
+        const existingHwIds = new Set(houseworkLog.map(e=>e.id));
+        data.houseworkLog.forEach(e=>{ if(!existingHwIds.has(e.id)) houseworkLog.push(e); });
+      }
       if(data.records && Array.isArray(data.records)){
         const byId = {}; records.forEach(r=> byId[r.id]=r);
         data.records.forEach(r=> byId[r.id]=r);
         records = Object.values(byId).sort((a,b)=> (parseInt(a.meta.trainNum)||0)-(parseInt(b.meta.trainNum)||0));
         persistRecords();
       }
+      migrateHouseworkLogToRecords(); // starší zálohy mívaly Práci doma jako vlastní log — přemění na tréninkové záznamy, pokud tam ještě něco zbylo
       current = records.length ? JSON.parse(JSON.stringify(records[records.length-1])) : blankRecord();
       syncCurrentWithConfig();
       fillFormFromCurrent();
@@ -3689,6 +3790,7 @@ function init(){
   loadTheme();
   loadConfig(); loadSports(); loadRecords(); loadStopwatchAll(); loadPinned(); loadProfile(); loadBodyLog();
   migrateTwist10DataFormat();
+  migrateHouseworkLogToRecords();
   buildMetaGrid(); buildSuuntoGrid(); buildProfileGrid();
 
   if(records.length){ current = JSON.parse(JSON.stringify(records[records.length-1])); }
