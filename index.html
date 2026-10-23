@@ -297,6 +297,33 @@
   .week-row-cells{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;flex:1;}
   .week-cell{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:0.6rem;color:#fff;min-height:20px;}
   .week-day-label{text-align:center;font-size:0.62rem;color:var(--muted);font-weight:700;}
+
+  .home-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 18px;}
+  .home-tile{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 12px;text-align:left;color:var(--text);font-family:var(--sans);cursor:pointer;min-height:68px;}
+  .home-tile:active{transform:scale(0.98);}
+  .home-tile .ic{font-size:1.6rem;flex:none;}
+  .home-tile .t{display:block;font-weight:800;font-size:0.9rem;}
+  .home-tile .s{display:block;font-size:0.66rem;color:var(--muted);margin-top:2px;line-height:1.3;}
+  .home-tile-new{grid-column:1 / -1;background:var(--accent);border-color:var(--accent);color:#140900;}
+  .home-tile-new .s{color:#140900aa;}
+  .home-tile-new .ic{font-weight:800;}
+  .home-chart-head{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .home-chart-tools{display:flex;gap:4px;flex:none;}
+  .home-chart-tools button{background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 9px;font-size:0.75rem;cursor:pointer;}
+  .home-chart-tools button:disabled{opacity:0.3;}
+  .home-chart-tools button.rm{color:#e5484d;}
+  .home-nodata{font-size:0.75rem;color:var(--faint);padding:14px 4px;text-align:center;}
+  .home-picker{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+  .home-picker button{background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:10px 12px;text-align:left;color:var(--text);font-family:var(--sans);cursor:pointer;}
+  .home-picker button span{display:block;font-size:0.68rem;color:var(--muted);margin-top:2px;}
+  .back-home{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:999px;padding:8px 14px;font-weight:700;font-size:0.74rem;font-family:var(--sans);cursor:pointer;flex:none;}
+  .watchhead.compact .brand-title{display:none;}
+  .view-title{font-weight:800;font-size:0.95rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .nav-toggle.main-nav{display:none;}
+  .watchhead.compact .dial, .watchhead.compact .stopwatch-card{display:none;}
+  .watchhead.compact .watchhead-row{margin-bottom:4px;}
+  .new-act-bar{margin:0 0 12px;}
+  .btn-new-activity{width:100%;background:var(--accent);color:#140900;border:none;border-radius:12px;padding:12px;font-weight:800;font-size:0.88rem;font-family:var(--sans);cursor:pointer;}
 </style>
 </head>
 <body>
@@ -305,7 +332,9 @@
   <div class="watchhead">
     <div class="watchhead-row">
       <div class="brand"><span class="dot">●</span><span class="brand-title">Deník</span><span id="autosaveIndicator" style="opacity:0;transition:opacity .3s;font-size:0.62rem;color:var(--good);margin-left:6px;font-weight:700;">✓ auto</span></div>
-      <div class="nav-toggle">
+      <button id="backHomeBtn" class="back-home" onclick="switchTab('home')" style="display:none">‹ Domů</button>
+      <div class="view-title" id="viewTitle"></div>
+      <div class="nav-toggle main-nav">
         <button id="tabFormBtn" class="active">Zápis</button>
         <button id="tabHistBtn">Historie</button>
         <button id="tabCfgBtn">Cviky</button>
@@ -333,6 +362,13 @@
     </div>
   </div>
 
+  <div id="gdRestoreBanner" class="backup-banner" style="display:none">
+    <span>☁️ Appka je prázdná. Máš zálohu na Google Disku? Můžeš z ní data obnovit.</span>
+    <div style="display:flex;gap:6px;flex:none">
+      <button onclick="gdRestoreFromBanner()">📥 Obnovit</button>
+      <button class="dismiss" onclick="gdDismissRestoreBanner()">✕</button>
+    </div>
+  </div>
   <div id="backupBanner" class="backup-banner" style="display:none">
     <span id="backupBannerText"></span>
     <div style="display:flex;gap:6px;flex:none">
@@ -341,8 +377,16 @@
     </div>
   </div>
 
+  <!-- ============ HOME VIEW ============ -->
+  <div id="homeView">
+    <div class="home-tiles" id="homeTiles"></div>
+    <div id="homeCharts"></div>
+  </div>
+
   <!-- ============ FORM VIEW ============ -->
-  <div id="formView">
+  <div id="formView" style="display:none">
+
+    <div class="new-act-bar"><button class="btn-new-activity" onclick="newRecord()">＋ Nová aktivita</button></div>
 
     <div class="section open" id="pinnedSection">
       <div class="section-head" onclick="togglePinnedCollapse(this)">
@@ -402,7 +446,6 @@
             <label class="switch"><input type="checkbox" id="recordManual"><span class="track"></span><span class="thumb"></span></label>
           </div>
           <div class="toolbar-row">
-            <button class="btn-mini" onclick="newRecord()">＋ Nový záznam</button>
             <button class="btn-mini danger" onclick="deleteCurrent()">🗑 Smazat tento</button>
           </div>
           <div class="section-note">Síla = váhy činky (kg×opak) + cviky s vlastní vahou (tvoje kg × koeficient × opak). Data se ukládají jen v tomto telefonu.</div>
@@ -426,6 +469,10 @@
           <button class="btn-mini" onclick="document.getElementById('importFile').click()">📥 Import z Disk</button>
         </div>
         <input type="file" id="importFile" style="display:none" onchange="importBackupFile(this)">
+        <div class="subgroup-title" style="margin-top:16px">☁️ Záloha na Google Disk (automatická)</div>
+        <div class="section-note" style="margin-top:0" id="gdStatus"></div>
+        <div id="gdClientRow" style="display:none;margin-bottom:8px"><input type="text" id="gdClientInput" placeholder="Client ID (…apps.googleusercontent.com)" style="width:100%;box-sizing:border-box"></div>
+        <div class="toolbar-row" id="gdButtons"></div>
       </div>
     </div>
     <div id="histList"></div>
@@ -659,6 +706,12 @@
     <div class="cfg-hint">Stručný přehled všech funkcí appky — co dělají a jak se používají.</div>
 
     <div class="section"><div class="section-body-inner">
+      <div class="subgroup-title" style="margin-top:0">🏠 Úvodní obrazovka</div>
+      <p class="help-p">Appka se otevře na úvodní obrazovce s dlaždicemi — každá vede do jedné sekce (Zápis, Historie, Profil, Graf, Běh výkon, Svaly, Cviky, Sporty, Nápověda). Oranžová dlaždice "Nová aktivita" rovnou založí čistý záznam a otevře Zápis; dlaždice "Zápis" naopak pokračuje v rozepsaném záznamu. V každé sekci se zpátky dostaneš tlačítkem "‹ Domů" vlevo nahoře. Hodinkový přehled a stopky jsou vidět jen v Zápisu, kde je nahoře i tlačítko "＋ Nová aktivita".</p>
+      <p class="help-p">Pod dlaždicemi jsou grafy, které si můžeš poskládat sám. Výchozí jsou "Tréninky po týdnech" a "Objem po týdnech". Tlačítkem "✏️ Upravit grafy" se u každého grafu objeví šipky ▲▼ (pořadí) a ✕ (odebrat), tlačítkem "➕ Přidat graf" vybereš další z nabídky (Bench &amp; Mrtvý tah, Tělesná váha, Tempo běhu, Odpočatost a spánek). Volba se pamatuje v telefonu a součástí zálohy není — po obnově dat si grafy případně nastav znovu.</p>
+    </div></div>
+
+    <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">📝 Zápis (hlavní obrazovka)</div>
       <p class="help-p">Nahoře je "hodinkový" přehled (číslo tréninku, délka, TSS) a stopky — Start/Reset ti automaticky vyplní čas začátku/konce a délku tréninku. Vedle Start/Reset je i tlačítko Uložit, pro rychlé uložení bez rolování dolů. Dokud stopky běží, appka drží obrazovku telefonu rozsvícenou (nezhasne, nezamkne se) — funguje to, jen když je appka aktivně otevřená na displeji (ne úplně na pozadí).</p>
       <p class="help-p"><b>⭐ Rychlý přístup</b> — cviky, které si připneš hvězdičkou ☆ u libovolného cviku níže, se objeví nahoře, ať se u okruhů (např. bench→břicho→nohy dokola) nemusíš pořád proplétat mezi sekcemi. Pořadí připnutých cviků změníš šipkami ▲▼ vlevo od cviku — appka si ho trvale pamatuje. Během tréninku appka navíc dočasně posouvá cviky, do kterých už jsi něco zapsal, nahoru (ať nemusíš rolovat k už vyplněným) — jakmile ale založíš nový trénink, zobrazí se zase přesně to pořadí, co máš uložené šipkami. Celou sekci jde sbalit/rozbalit klepnutím na nadpis — appka si pamatuje, jak jsi ji naposledy nechal, i po zavření appky.</p>
@@ -713,6 +766,7 @@
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">💾 Záloha dat</div>
       <p class="help-p">Nahoře v Historii je "💾 Záloha dat" — Export (uloží zálohu jako soubor .txt — je to čitelný text/JSON, appka si s tím poradí, jen kvůli spolehlivějšímu sdílení na Androidu nemá příponu .json) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává, appka přijme jak .txt, tak i starší .json soubory). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené, tělesné míry a fotky, tlak/tep i spánek z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
+      <p class="help-p"><b>☁️ Záloha na Google Disk.</b> V Historii pod "Záloha dat" se appka dá připojit k tvému Google Disku. Záloha se pak dělá sama krátce po každém uložení (do skryté složky appky na tvém Disku — jinde ji neuvidíš a nikdo jiný k ní nemá přístup). Smazání dat prohlížeče už tě tedy nezruinuje: prázdná appka nabídne "Obnovit z Disku". Appka záměrně nikdy nepřepíše větší zálohu na Disku prázdnými nebo menšími daty — zastaví se a upozorní tě. Každý den se uloží i snapshot (drží se posledních 14), takže jde vrátit starší stav přes "Starší verze". Když se automatická záloha nemůže přihlásit sama, počká a dokončí se při dalším klepnutí v appce. Ruční export souboru zůstává jako druhá pojistka.</p>
     </div></div>
   </div>
 
@@ -2768,7 +2822,15 @@ function showToast(msg, duration){ const t=document.getElementById("toast"); t.t
 /* ============================================================
    TABS
    ============================================================ */
+const VIEW_TITLES = { form:"✍️ Zápis", hist:"📚 Historie", cfg:"🏋️ Cviky", sport:"⚽ Sporty", muscle:"💪 Svaly", perf:"🏃 Běh výkon", chart:"📈 Graf", profile:"🧍 Profil", help:"❓ Nápověda" };
 function switchTab(tab){
+  document.getElementById("homeView").style.display = tab==="home" ? "" : "none";
+  document.getElementById("backHomeBtn").style.display = tab==="home" ? "none" : "";
+  document.getElementById("viewTitle").textContent = tab==="home" ? "" : (VIEW_TITLES[tab]||"");
+  document.querySelector(".watchhead").classList.toggle("compact", tab!=="form");
+  document.querySelector(".actionbar").style.display = tab==="home" ? "none" : "";
+  if(tab==="home") renderHome();
+  window.scrollTo(0,0);
   document.getElementById("formView").style.display = tab==="form" ? "" : "none";
   document.getElementById("histView").style.display = tab==="hist" ? "" : "none";
   document.getElementById("cfgView").style.display  = tab==="cfg"  ? "" : "none";
@@ -3746,8 +3808,11 @@ function backupFromBanner(){
   dismissBackupBanner();
 }
 
+function buildBackupObject(){
+  return { exportedAt: new Date().toISOString(), appVersion: 7, config: CONFIG, sports: SPORTS, records: records, profile: PROFILE, pinned: pinnedRows, bodyLog: bodyLog, bpLog: bpLog, sleepLog: sleepLog, breakLog: breakLog, fatigueScale: 2 };
+}
 function exportBackup(){
-  const backup = { exportedAt: new Date().toISOString(), appVersion: 7, config: CONFIG, sports: SPORTS, records: records, profile: PROFILE, pinned: pinnedRows, bodyLog: bodyLog, bpLog: bpLog, sleepLog: sleepLog, breakLog: breakLog, fatigueScale: 2 };
+  const backup = buildBackupObject();
   const json = JSON.stringify(backup, null, 2);
   const filename = `trenink_zaloha_${new Date().toISOString().slice(0,10)}.txt`;
   const blob = new Blob([json], {type:"text/plain"});
@@ -3779,6 +3844,56 @@ function downloadBlob(blob, filename){
   setTimeout(()=> URL.revokeObjectURL(url), 2000);
   showToast("Záloha stažena do telefonu (Stažené soubory) — do Disku ji nahraješ ručně přes appku Disk", 4000);
 }
+function applyBackupData(data){
+  if(data.config && data.config.groups){ CONFIG = data.config; persistConfig(); }
+  if(data.sports && data.sports.sports){ SPORTS = data.sports; persistSports(); }
+  if(data.profile && typeof data.profile === "object"){ PROFILE = data.profile; persistProfile(); buildProfileGrid(); }
+  if(data.pinned && Array.isArray(data.pinned)){
+    pinnedRows = Array.from(new Set([...pinnedRows, ...data.pinned]));
+    persistPinned();
+  }
+  if(data.bodyLog && Array.isArray(data.bodyLog)){
+    const existingIds = new Set(bodyLog.map(e=>e.id));
+    data.bodyLog.forEach(e=>{ if(!existingIds.has(e.id)) bodyLog.push(e); });
+    bodyLog.sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+    persistBodyLog();
+  }
+  if(data.bpLog && Array.isArray(data.bpLog)){
+    const existingBpIds = new Set(bpLog.map(e=>e.id));
+    data.bpLog.forEach(e=>{ if(!existingBpIds.has(e.id)) bpLog.push(e); });
+    sortBpLog();
+    persistBpLog();
+  }
+  if(data.sleepLog && Array.isArray(data.sleepLog)){
+    const existingSleepIds = new Set(sleepLog.map(e=>e.id));
+    data.sleepLog.forEach(e=>{ if(!existingSleepIds.has(e.id)) sleepLog.push(e); });
+    sortSleepLog();
+    persistSleepLog();
+  }
+  if(data.breakLog && Array.isArray(data.breakLog)){
+    const existingBreakIds = new Set(breakLog.map(e=>e.id));
+    data.breakLog.forEach(e=>{ if(!existingBreakIds.has(e.id)) breakLog.push(e); });
+    sortBreakLog();
+    persistBreakLog();
+  }
+  if(data.houseworkLog && Array.isArray(data.houseworkLog) && data.houseworkLog.length){
+    const existingHwIds = new Set(houseworkLog.map(e=>e.id));
+    data.houseworkLog.forEach(e=>{ if(!existingHwIds.has(e.id)) houseworkLog.push(e); });
+  }
+  if(data.records && Array.isArray(data.records)){
+    if(data.fatigueScale!==2) invertFatigueInRecords(data.records); // záloha ze starší verze: Únava měla opačnou škálu
+    const byId = {}; records.forEach(r=> byId[r.id]=r);
+    data.records.forEach(r=> byId[r.id]=r);
+    records = Object.values(byId).sort((a,b)=> (parseInt(a.meta.trainNum)||0)-(parseInt(b.meta.trainNum)||0));
+    persistRecords();
+  }
+  migrateHouseworkLogToRecords(); // starší zálohy mívaly Práci doma jako vlastní log — přemění na tréninkové záznamy, pokud tam ještě něco zbylo
+  current = records.length ? JSON.parse(JSON.stringify(records[records.length-1])) : blankRecord();
+  syncCurrentWithConfig();
+  fillFormFromCurrent();
+  renderHistory();
+  markBackupDone();
+}
 function importBackupFile(inputEl){
   const file = inputEl.files[0]; if(!file) return;
   const reader = new FileReader();
@@ -3788,54 +3903,7 @@ function importBackupFile(inputEl){
     catch(err){ showToast("Soubor se nepodařilo přečíst"); inputEl.value=""; return; }
     if(!confirm("Import sloučí zálohu s aktuálními daty v telefonu (stejná ID se přepíší novější verzí). Pokračovat?")){ inputEl.value=""; return; }
     try{
-      if(data.config && data.config.groups){ CONFIG = data.config; persistConfig(); }
-      if(data.sports && data.sports.sports){ SPORTS = data.sports; persistSports(); }
-      if(data.profile && typeof data.profile === "object"){ PROFILE = data.profile; persistProfile(); buildProfileGrid(); }
-      if(data.pinned && Array.isArray(data.pinned)){
-        pinnedRows = Array.from(new Set([...pinnedRows, ...data.pinned]));
-        persistPinned();
-      }
-      if(data.bodyLog && Array.isArray(data.bodyLog)){
-        const existingIds = new Set(bodyLog.map(e=>e.id));
-        data.bodyLog.forEach(e=>{ if(!existingIds.has(e.id)) bodyLog.push(e); });
-        bodyLog.sort((a,b)=> (a.date||"").localeCompare(b.date||""));
-        persistBodyLog();
-      }
-      if(data.bpLog && Array.isArray(data.bpLog)){
-        const existingBpIds = new Set(bpLog.map(e=>e.id));
-        data.bpLog.forEach(e=>{ if(!existingBpIds.has(e.id)) bpLog.push(e); });
-        sortBpLog();
-        persistBpLog();
-      }
-      if(data.sleepLog && Array.isArray(data.sleepLog)){
-        const existingSleepIds = new Set(sleepLog.map(e=>e.id));
-        data.sleepLog.forEach(e=>{ if(!existingSleepIds.has(e.id)) sleepLog.push(e); });
-        sortSleepLog();
-        persistSleepLog();
-      }
-      if(data.breakLog && Array.isArray(data.breakLog)){
-        const existingBreakIds = new Set(breakLog.map(e=>e.id));
-        data.breakLog.forEach(e=>{ if(!existingBreakIds.has(e.id)) breakLog.push(e); });
-        sortBreakLog();
-        persistBreakLog();
-      }
-      if(data.houseworkLog && Array.isArray(data.houseworkLog) && data.houseworkLog.length){
-        const existingHwIds = new Set(houseworkLog.map(e=>e.id));
-        data.houseworkLog.forEach(e=>{ if(!existingHwIds.has(e.id)) houseworkLog.push(e); });
-      }
-      if(data.records && Array.isArray(data.records)){
-        if(data.fatigueScale!==2) invertFatigueInRecords(data.records); // záloha ze starší verze: Únava měla opačnou škálu
-        const byId = {}; records.forEach(r=> byId[r.id]=r);
-        data.records.forEach(r=> byId[r.id]=r);
-        records = Object.values(byId).sort((a,b)=> (parseInt(a.meta.trainNum)||0)-(parseInt(b.meta.trainNum)||0));
-        persistRecords();
-      }
-      migrateHouseworkLogToRecords(); // starší zálohy mívaly Práci doma jako vlastní log — přemění na tréninkové záznamy, pokud tam ještě něco zbylo
-      current = records.length ? JSON.parse(JSON.stringify(records[records.length-1])) : blankRecord();
-      syncCurrentWithConfig();
-      fillFormFromCurrent();
-      renderHistory();
-      markBackupDone();
+      applyBackupData(data);
       showToast("Záloha importována ✓");
     }catch(err){ showToast("Záloha má neočekávaný formát"); }
     inputEl.value = "";
@@ -3844,8 +3912,364 @@ function importBackupFile(inputEl){
 }
 
 /* ============================================================
+   ZÁLOHA NA GOOGLE DISK (skrytá složka appDataFolder, scope drive.appdata)
+   Žádný server — appka mluví přímo s Googlem. Data jsou jen na tvém Disku.
+   ============================================================ */
+const GDRIVE_CLIENT_ID_DEFAULT = ""; // sem vlož Client ID z Google Cloud (…apps.googleusercontent.com) — pak stačí 1 klepnutí na Připojit
+const GD_KEY = "trenink_gdrive_v1";
+const GD_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const GD_LATEST = "trenink_zaloha_latest.json";
+const GD_SNAP_PREFIX = "trenink_snap_";
+const GD_SNAP_KEEP = 14;
+let gdState = (()=>{ try{ return JSON.parse(localStorage.getItem(GD_KEY)||"{}")||{}; }catch(e){ return {}; } })();
+let gdToken = null, gdTokenExp = 0, gdTokenClient = null, gdBusy = false, gdSuspend = false, gdTimer = null, gdRemote = null;
+function gdSave(){ try{ localStorage.setItem(GD_KEY, JSON.stringify(gdState)); }catch(e){} }
+function gdClientId(){ return (GDRIVE_CLIENT_ID_DEFAULT || gdState.clientId || "").trim(); }
+function gdLoadGis(){
+  if(window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
+  if(gdLoadGis._p) return gdLoadGis._p;
+  gdLoadGis._p = new Promise((res,rej)=>{
+    const sc = document.createElement("script");
+    sc.src = "https://accounts.google.com/gsi/client"; sc.async = true;
+    sc.onload = ()=> res();
+    sc.onerror = ()=>{ gdLoadGis._p = null; rej(new Error("Nepodařilo se načíst přihlášení Google (jsi online?)")); };
+    document.head.appendChild(sc);
+  });
+  return gdLoadGis._p;
+}
+/* interactive=true: smí otevřít okno Google (volat z klepnutí); false: tichá obnova tokenu */
+function gdGetToken(interactive, firstConsent){
+  if(gdToken && Date.now() < gdTokenExp - 60000) return Promise.resolve(gdToken);
+  const cid = gdClientId();
+  if(!cid) return Promise.reject(new Error("Chybí Client ID"));
+  return gdLoadGis().then(()=> new Promise((res,rej)=>{
+    let done = false;
+    const finish = (fn,v)=>{ if(!done){ done = true; clearTimeout(to); fn(v); } };
+    const to = setTimeout(()=> finish(rej, new Error("silent-timeout")), interactive ? 120000 : 8000);
+    gdTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: cid, scope: GD_SCOPE,
+      callback: (r)=>{
+        if(r && r.access_token){
+          gdToken = r.access_token; gdTokenExp = Date.now() + (parseInt(r.expires_in)||3600)*1000;
+          finish(res, gdToken);
+        } else finish(rej, new Error((r && (r.error_description||r.error)) || "Přihlášení se nezdařilo"));
+      },
+      error_callback: (e)=> finish(rej, new Error((e && (e.type||e.message)) || "Přihlášení zrušeno"))
+    });
+    gdTokenClient.requestAccessToken({ prompt: firstConsent ? "consent" : (interactive ? "" : "none") });
+  }));
+}
+async function gdApi(url, opts, interactive){
+  const tok = await gdGetToken(!!interactive);
+  const o = Object.assign({}, opts||{}); o.headers = Object.assign({Authorization:"Bearer "+tok}, o.headers||{});
+  let r = await fetch(url, o);
+  if(r.status === 401){ gdToken = null; const t2 = await gdGetToken(!!interactive); o.headers.Authorization = "Bearer "+t2; r = await fetch(url, o); }
+  if(!r.ok){ let t=""; try{ t = (await r.text()).slice(0,200); }catch(e){} throw new Error("Disk "+r.status+" "+t); }
+  return r;
+}
+async function gdList(q, interactive){
+  const url = "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=100&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime,appProperties)&q="+encodeURIComponent(q);
+  return (await (await gdApi(url,null,interactive)).json()).files || [];
+}
+async function gdFindLatest(interactive){
+  const f = await gdList("name='"+GD_LATEST+"' and trashed=false", interactive);
+  return f[0] || null;
+}
+function gdMultipart(meta, text){
+  const b = "gdb"+Math.random().toString(36).slice(2);
+  return { type:"multipart/related; boundary="+b,
+    body: "--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+"\r\n--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+text+"\r\n--"+b+"--" };
+}
+async function gdUpload(existing, text, props, interactive){
+  const meta = { appProperties: props };
+  let url, method;
+  if(existing){ url = "https://www.googleapis.com/upload/drive/v3/files/"+existing.id+"?uploadType=multipart&fields=id,modifiedTime"; method = "PATCH"; }
+  else { meta.name = GD_LATEST; meta.parents = ["appDataFolder"]; url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime"; method = "POST"; }
+  const mp = gdMultipart(meta, text);
+  return (await gdApi(url, { method, headers:{"Content-Type":mp.type}, body:mp.body }, interactive)).json();
+}
+/* Denní snapshot: před přepsáním zkopíruje dosavadní „latest“ (pokud je z jiného dne), udržuje posledních GD_SNAP_KEEP */
+async function gdSnapshot(existing, interactive){
+  if(!existing) return;
+  const day = (existing.modifiedTime||"").slice(0,10); if(!day) return;
+  const name = GD_SNAP_PREFIX+day+".json";
+  const snaps = await gdList("name contains '"+GD_SNAP_PREFIX+"' and trashed=false", interactive);
+  if(!snaps.some(f=>f.name===name) && day !== new Date().toISOString().slice(0,10)){
+    await gdApi("https://www.googleapis.com/drive/v3/files/"+existing.id+"/copy", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ name, parents:["appDataFolder"], appProperties: existing.appProperties||{} }) }, interactive);
+    snaps.push({name});
+  }
+  const sorted = snaps.filter(f=>f.id).sort((a,b)=> b.name.localeCompare(a.name));
+  for(const f of sorted.slice(GD_SNAP_KEEP)){ try{ await gdApi("https://www.googleapis.com/drive/v3/files/"+f.id, {method:"DELETE"}, interactive); }catch(e){} }
+}
+function gdTotalCount(){ return records.length; }
+function gdSetStatus(msg){ gdState.statusMsg = msg; gdSave(); gdRenderUI(); }
+/* Hlavní zálohování. manual=true: z tlačítka (smí se zeptat a otevřít okno Google) */
+async function gdBackupNow(manual){
+  if(gdBusy || !gdState.connected) return;
+  gdBusy = true; gdRenderUI();
+  try{
+    const existing = await gdFindLatest(manual);
+    const remoteCount = existing && existing.appProperties ? (parseInt(existing.appProperties.recordCount)||0) : 0;
+    const localCount = gdTotalCount();
+    if(existing && localCount === 0 && remoteCount > 0){
+      gdState.conflict = true; gdSetStatus("⛔ Appka je prázdná, na Disku je záloha ("+remoteCount+" záznamů) — NEPŘEPISUJI ji. Použij „Obnovit z Disku“.");
+      return;
+    }
+    if(existing && localCount < remoteCount){
+      if(!manual){
+        gdState.conflict = true; gdSetStatus("⚠️ Na Disku je záloha s víc záznamy ("+remoteCount+") než tady ("+localCount+") — automatika pozastavena. Zkontroluj a zvol Zálohovat teď nebo Obnovit.");
+        return;
+      }
+      if(!confirm("Na Disku je záloha s "+remoteCount+" záznamy, tady jen "+localCount+". Opravdu ji přepsat menší verzí? (Starší verze zůstanou jako denní snapshoty.)")) return;
+    }
+    await gdSnapshot(existing, manual);
+    const props = { recordCount: String(localCount), appVersion: "7", device: (navigator.userAgent||"").slice(0,60) };
+    const text = JSON.stringify(buildBackupObject());
+    await gdUpload(existing, text, props, manual);
+    gdState.conflict = false; gdState.dirty = false; gdState.pending = false;
+    gdState.lastOk = new Date().toISOString(); gdState.lastCount = localCount; gdState.statusMsg = "";
+    gdSave(); markBackupDone();
+    if(manual) showToast("Zálohováno na Google Disk ✓");
+    gdRefreshRemote();
+  }catch(err){
+    if(manual){ showToast("Záloha na Disk selhala: "+(err.message||err), 4500); }
+    else { gdState.pending = true; gdSave(); }
+    gdState.statusMsg = manual ? "❌ "+(err.message||err) : "⏳ Čeká na přihlášení — klepni kamkoli v appce, záloha se dokončí.";
+    gdSave();
+  }finally{ gdBusy = false; gdRenderUI(); }
+}
+async function gdRefreshRemote(){
+  if(!gdState.connected) return;
+  try{ const f = await gdFindLatest(false); gdRemote = f; }catch(e){ /* tiše */ }
+  gdRenderUI();
+}
+function gdMarkDirty(){
+  if(gdSuspend || !gdState.connected) return;
+  gdState.dirty = true; gdSave();
+  clearTimeout(gdTimer); gdTimer = setTimeout(()=> gdAutoBackup(), 15000);
+}
+function gdAutoBackup(){
+  if(!gdState.connected || gdBusy || gdState.conflict) return;
+  if(!(gdToken && Date.now() < gdTokenExp-60000)){
+    // tichá obnova tokenu; když to nejde bez klepnutí, počká se na další gesto
+    gdGetToken(false).then(()=> gdBackupNow(false)).catch(()=>{ gdState.pending = true; gdState.statusMsg = "⏳ Čeká na přihlášení — klepni kamkoli v appce, záloha se dokončí."; gdSave(); gdRenderUI(); });
+    return;
+  }
+  gdBackupNow(false);
+}
+document.addEventListener("pointerdown", ()=>{
+  if(gdState.connected && gdState.pending && !gdBusy && !gdState.conflict){
+    gdGetToken(true).then(()=> gdBackupNow(false)).catch(()=>{});
+  }
+}, {passive:true});
+/* Připojení (z klepnutí) */
+async function gdConnect(){
+  if(!gdClientId()){
+    const v = (document.getElementById("gdClientInput")||{}).value;
+    if(!v || !/\.apps\.googleusercontent\.com$/.test(v.trim())){ showToast("Vlož Client ID ve tvaru …apps.googleusercontent.com", 3500); return; }
+    gdState.clientId = v.trim(); gdSave();
+  }
+  try{
+    await gdGetToken(true, true);
+    gdState.connected = true; gdState.conflict = false; gdSave();
+    const existing = await gdFindLatest(true);
+    gdRemote = existing;
+    if(existing && records.length === 0){
+      if(confirm("Na Disku je záloha ("+((existing.appProperties||{}).recordCount||"?")+" záznamů). Obnovit ji do appky?")){ await gdRestore(existing); return; }
+    }
+    showToast("Google Disk připojen ✓");
+    await gdBackupNow(true);
+  }catch(err){ showToast("Připojení selhalo: "+(err.message||err), 4500); }
+  gdRenderUI();
+}
+function gdDisconnect(){
+  if(!confirm("Odpojit Google Disk? Záloha na Disku zůstane, appka jen přestane zálohovat automaticky.")) return;
+  try{ if(gdToken && window.google) google.accounts.oauth2.revoke(gdToken, ()=>{}); }catch(e){}
+  gdToken = null; gdTokenExp = 0; gdState.connected = false; gdState.pending = false; gdState.conflict = false; gdState.statusMsg = ""; gdSave(); gdRenderUI();
+}
+async function gdRestore(file){
+  try{
+    if(!gdState.connected){ await gdGetToken(true, !gdToken); }
+    const f = file || await gdFindLatest(true);
+    if(!f){ showToast("Na Disku zatím žádná záloha není", 3500); return; }
+    const data = await (await gdApi("https://www.googleapis.com/drive/v3/files/"+f.id+"?alt=media", null, true)).json();
+    const n = Array.isArray(data.records) ? data.records.length : 0;
+    if(!confirm("Obnovit zálohu z Disku ("+n+" záznamů, "+(f.modifiedTime||"").slice(0,16).replace("T"," ")+")? Sloučí se s daty v appce.")) return;
+    gdSuspend = true;
+    try{ applyBackupData(data); } finally{ gdSuspend = false; }
+    if(!gdState.connected){ gdState.connected = true; }
+    gdState.conflict = false; gdState.pending = false; gdState.statusMsg = ""; gdSave();
+    showToast("Obnoveno z Google Disku ✓ ("+n+" záznamů)", 3500);
+    gdRenderUI();
+    // po obnově se klidně zálohuje dál (počty už sedí)
+    gdMarkDirty();
+  }catch(err){ showToast("Obnova selhala: "+(err.message||err), 4500); }
+}
+async function gdRestoreChoose(){
+  try{
+    await gdGetToken(true, !gdToken);
+    const snaps = await gdList("name contains '"+GD_SNAP_PREFIX+"' and trashed=false", true);
+    if(!snaps.length){ showToast("Starší denní zálohy zatím nejsou (vznikají při dalším dni zálohování)", 4000); return; }
+    const list = snaps.slice().sort((a,b)=> b.name.localeCompare(a.name));
+    const txt = list.map((f,i)=> (i+1)+") "+f.name.replace(GD_SNAP_PREFIX,"").replace(".json","")+" ("+((f.appProperties||{}).recordCount||"?")+" záznamů)").join("\n");
+    const ans = prompt("Starší verze (stav na konci daného dne). Napiš číslo:\n"+txt);
+    const idx = parseInt(ans)-1;
+    if(isNaN(idx) || !list[idx]) return;
+    await gdRestore(list[idx]);
+  }catch(err){ showToast("Chyba: "+(err.message||err), 4500); }
+}
+function gdFmt(iso){ if(!iso) return "—"; const d = new Date(iso); return d.toLocaleDateString("cs-CZ")+" "+d.toLocaleTimeString("cs-CZ",{hour:"2-digit",minute:"2-digit"}); }
+function gdRenderUI(){
+  const st = document.getElementById("gdStatus"); if(!st) return;
+  const btns = document.getElementById("gdButtons"), cr = document.getElementById("gdClientRow");
+  const hasCid = !!gdClientId();
+  cr.style.display = (!hasCid && !gdState.connected) ? "block" : "none";
+  let html;
+  if(!gdState.connected){
+    html = hasCid ? "Nepřipojeno. Po připojení se záloha dělá sama po každém uložení a data zůstanou na tvém Disku i po smazání dat prohlížeče." : "Nepřipojeno. Nejdřív vlož Client ID z Google Cloud (návod ti dám zvlášť).";
+    btns.innerHTML = `<button class="btn-mini" onclick="gdConnect()">☁️ Připojit Google Disk</button><button class="btn-mini" onclick="gdRestore()">📥 Obnovit z Disku</button>`;
+  } else {
+    html = `✅ Připojeno. Poslední záloha: <b>${gdFmt(gdState.lastOk)}</b>${gdState.lastCount!=null?` (${gdState.lastCount} záznamů)`:""}.`;
+    if(gdRemote) html += `<br>Na Disku: ${gdFmt(gdRemote.modifiedTime)}, ${(gdRemote.appProperties||{}).recordCount||"?"} záznamů.`;
+    if(gdState.dirty && !gdState.pending && !gdBusy) html += `<br>⏱ Změny se zálohují za chvíli…`;
+    btns.innerHTML = `<button class="btn-mini" onclick="gdBackupNow(true)">☁️ Zálohovat teď</button><button class="btn-mini" onclick="gdRestore()">📥 Obnovit z Disku</button><button class="btn-mini" onclick="gdRestoreChoose()">🕓 Starší verze</button><button class="btn-mini" onclick="gdDisconnect()">🔌 Odpojit</button>`;
+  }
+  if(gdBusy) html += `<br>⏳ Pracuju s Diskem…`;
+  if(gdState.statusMsg) html += `<br>${gdState.statusMsg}`;
+  st.innerHTML = html;
+  gdCheckRestoreBanner();
+}
+function gdCheckRestoreBanner(){
+  const el = document.getElementById("gdRestoreBanner"); if(!el) return;
+  const show = !gdState.connected && records.length === 0 && !!gdClientId() && !sessionStorage.getItem("trenink_gd_banner_dismissed");
+  el.style.display = show ? "flex" : "none";
+}
+function gdDismissRestoreBanner(){ sessionStorage.setItem("trenink_gd_banner_dismissed","1"); gdCheckRestoreBanner(); }
+function gdRestoreFromBanner(){ gdConnect(); }
+function gdInit(){
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
+  ["persistRecords","persistConfig","persistSports","persistProfile","persistPinned","persistBodyLog","persistBpLog","persistSleepLog","persistBreakLog"].forEach(n=>{
+    const o = window[n]; if(typeof o !== "function") return;
+    window[n] = function(){ const r = o.apply(this, arguments); gdMarkDirty(); return r; };
+  });
+  gdRenderUI();
+  if(gdState.connected && (gdState.dirty || gdState.pending)){ gdState.pending = true; gdSave(); }
+  if(gdState.connected) gdRefreshRemote();
+}
+
+/* ============================================================
    INIT
    ============================================================ */
+/* ============================================================
+   ÚVODNÍ OBRAZOVKA — dlaždice + uživatelské grafy
+   ============================================================ */
+const HOME_KEY = "trenink_home_v1";
+const HOME_TILES = [
+  { tab:"form",    ic:"✍️", t:"Zápis",      s:"Rozepsaný záznam" },
+  { tab:"hist",    ic:"📚", t:"Historie",   s:"", count:true },
+  { tab:"profile", ic:"🧍", t:"Profil",     s:"Tělo · spánek · zdraví" },
+  { tab:"chart",   ic:"📈", t:"Graf",       s:"Vývoj výkonnosti" },
+  { tab:"perf",    ic:"🏃", t:"Běh výkon",  s:"Týden / měsíc" },
+  { tab:"muscle",  ic:"💪", t:"Svaly",      s:"Zátěž a zanedbané" },
+  { tab:"cfg",     ic:"🏋️", t:"Cviky",      s:"Úprava cviků a vah" },
+  { tab:"sport",   ic:"⚽", t:"Sporty",     s:"Úprava sportů" },
+  { tab:"help",    ic:"❓", t:"Nápověda",   s:"Jak co funguje" }
+];
+function homeWeekKey(d){ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x.getTime(); }
+function homeWeeks(n){
+  const out=[]; const cur = homeWeekKey(new Date());
+  for(let i=n-1;i>=0;i--){ const d=new Date(cur); d.setDate(d.getDate()-7*i); out.push(d.getTime()); }
+  return out;
+}
+function homeWeekLabel(ts){ const d=new Date(ts); return d.getDate()+"."+(d.getMonth()+1)+"."; }
+function homeRecDate(r){ return parseCzDate(r.meta && r.meta.date); }
+const HOME_WIDGETS = {
+  weekSessions:{ title:"Tréninky po týdnech", note:"Počet záznamů v každém týdnu (posledních 10).", build:()=>{
+    const wk = homeWeeks(10), cnt = wk.map(()=>0);
+    records.forEach(r=>{ if(recordHasBreak(r)) return; const d=homeRecDate(r); if(!d) return; const i=wk.indexOf(homeWeekKey(d)); if(i>=0) cnt[i]++; });
+    if(!cnt.some(v=>v>0)) return null;
+    return { type:"bar", data:{ labels:wk.map(homeWeekLabel), datasets:[{ label:"Tréninků", data:cnt, backgroundColor:"#ff4a00" }] }, opts:chartBaseOptions("počet") };
+  }},
+  weekVolume:{ title:"Objem po týdnech (kg)", note:"Součet zvednutých kg za týden — vrch těla + nohy.", build:()=>{
+    const wk = homeWeeks(10), vol = wk.map(()=>0);
+    records.forEach(r=>{ const d=homeRecDate(r); if(!d) return; const i=wk.indexOf(homeWeekKey(d)); if(i>=0) vol[i]+=CONFIG.groups.reduce((s,g)=> s+groupTotals(g,r).kgTotal,0); });
+    if(!vol.some(v=>v>0)) return null;
+    return { type:"bar", data:{ labels:wk.map(homeWeekLabel), datasets:[{ label:"Objem (kg)", data:vol.map(v=>Math.round(v)), backgroundColor:"#f2b134" }] }, opts:chartBaseOptions("kg") };
+  }},
+  lifts:{ title:"Bench & Mrtvý tah — max", note:"Posledních 20 tréninků s těmito cviky.", build:()=>{
+    const recs = getSortedRecordsForChart().slice(-20);
+    const b = findExerciseById("e_bench"), d = findExerciseById("e_deadlift");
+    const bm = recs.map(r=> b ? (ladderMaxWeight(r.data[b.id], b.weights)||null) : null);
+    const dm = recs.map(r=> d ? (ladderMaxWeight(r.data[d.id], d.weights)||null) : null);
+    if(!bm.some(v=>v) && !dm.some(v=>v)) return null;
+    return { type:"line", data:{ labels:recs.map(r=>"#"+(r.meta.trainNum||"?")), datasets:[
+      { label:"Bench (kg)", data:bm, borderColor:"#ff4a00", backgroundColor:"#ff4a00", tension:0.25, spanGaps:true },
+      { label:"Mrtvý tah (kg)", data:dm, borderColor:"#f2b134", backgroundColor:"#f2b134", tension:0.25, spanGaps:true } ] }, opts:chartBaseOptions("kg") };
+  }},
+  weight:{ title:"Tělesná váha", note:"Posledních 30 zápisů váhy z tréninků.", build:()=>{
+    const recs = getSortedRecordsForChart().filter(r=>r.meta.weight).slice(-30);
+    if(recs.length<2) return null;
+    return { type:"line", data:{ labels:recs.map(r=>"#"+(r.meta.trainNum||"?")), datasets:[{ label:"Váha (kg)", data:recs.map(r=>parseFloat(r.meta.weight)), borderColor:"#7ed957", backgroundColor:"#7ed957", tension:0.25 }] }, opts:chartBaseOptions("kg") };
+  }},
+  pace:{ title:"Tempo běhu", note:"Reálné tempo, nižší = rychlejší.", build:()=>{
+    const e = collectRuns().filter(x=>x.dt).sort((a,b)=>a.dt-b.dt).slice(-20);
+    if(e.length<2) return null;
+    return { type:"line", data:{ labels:e.map(x=>x.date), datasets:[{ label:"Tempo (min/km)", data:e.map(x=>+x.realPace.toFixed(2)), borderColor:"#e5484d", backgroundColor:"#e5484d", tension:0.25 }] }, opts:chartBaseOptions("min/km") };
+  }},
+  rest:{ title:"Odpočatost a spánek", note:"Z Profilu → Spánek, posledních 30 záznamů (10 = odpočatý).", build:()=>{
+    const s = [...sleepLog].filter(x=>x.date && x.quality!=null).sort((a,b)=>(a.date||"").localeCompare(b.date||"")).slice(-30);
+    if(s.length<2) return null;
+    return { type:"line", data:{ labels:s.map(x=>formatDateDisplay(x.date)), datasets:[
+      { label:"Odpočatost", data:s.map(x=>x.quality), borderColor:"#7ed957", backgroundColor:"#7ed957", tension:0.25 },
+      { label:"Hodiny spánku", data:s.map(x=>x.hours!=null?x.hours:null), borderColor:"#a970ff", backgroundColor:"#a970ff", tension:0.25, spanGaps:true } ] }, opts:chartBaseOptions("") };
+  }}
+};
+const HOME_DEFAULT = ["weekSessions","weekVolume"];
+let homeState = (()=>{ try{ const v=JSON.parse(localStorage.getItem(HOME_KEY)||"null"); if(v && Array.isArray(v.widgets)) return v; }catch(e){} return { widgets: HOME_DEFAULT.slice() }; })();
+let homeEdit = false, homePicker = false, homeChartInst = {};
+function homeSave(){ try{ localStorage.setItem(HOME_KEY, JSON.stringify(homeState)); }catch(e){} }
+function homeToggleEdit(){ homeEdit = !homeEdit; homePicker = false; renderHome(); }
+function homeRemove(id){ homeState.widgets = homeState.widgets.filter(w=>w!==id); homeSave(); renderHome(); }
+function homeMove(id, dir){
+  const a = homeState.widgets, i = a.indexOf(id), j = i+dir;
+  if(i<0 || j<0 || j>=a.length) return;
+  [a[i],a[j]] = [a[j],a[i]]; homeSave(); renderHome();
+}
+function homeAdd(id){ if(!homeState.widgets.includes(id) && HOME_WIDGETS[id]) homeState.widgets.push(id); homeSave(); homePicker = false; renderHome(); }
+function homeTogglePicker(){ homePicker = !homePicker; renderHome(); }
+function homeNewActivity(){ newRecord(); switchTab("form"); }
+function renderHome(){
+  const tiles = document.getElementById("homeTiles"); if(!tiles) return;
+  const nSaved = records.length;
+  tiles.innerHTML = `<button class="home-tile home-tile-new" onclick="homeNewActivity()"><span class="ic">＋</span><span><span class="t">Nová aktivita</span><span class="s">Začít čistý záznam</span></span></button>` +
+    HOME_TILES.map(t=>`<button class="home-tile" onclick="switchTab('${t.tab}')"><span class="ic">${t.ic}</span><span><span class="t">${t.t}</span><span class="s">${t.count ? nSaved+" záznamů" : t.s}</span></span></button>`).join("");
+  Object.values(homeChartInst).forEach(c=>{ try{ c.destroy(); }catch(e){} }); homeChartInst = {};
+  const wrap = document.getElementById("homeCharts");
+  const ids = homeState.widgets.filter(id=>HOME_WIDGETS[id]);
+  let html = ids.map((id,i)=>`<div class="section home-chart"><div class="section-body-inner">
+      <div class="home-chart-head"><div class="subgroup-title" style="margin:0">${HOME_WIDGETS[id].title}</div>
+        ${homeEdit ? `<div class="home-chart-tools"><button onclick="homeMove('${id}',-1)" ${i===0?"disabled":""}>▲</button><button onclick="homeMove('${id}',1)" ${i===ids.length-1?"disabled":""}>▼</button><button class="rm" onclick="homeRemove('${id}')">✕</button></div>` : ""}</div>
+      <div class="section-note" style="margin-top:2px">${HOME_WIDGETS[id].note}</div>
+      <canvas id="hc_${id}" height="170"></canvas><div class="home-nodata" id="hn_${id}" style="display:none">Zatím málo dat pro tenhle graf.</div>
+    </div></div>`).join("");
+  const free = Object.keys(HOME_WIDGETS).filter(id=>!ids.includes(id));
+  html += `<div class="toolbar-row" style="margin-top:4px">
+    <button class="btn-mini" onclick="homeTogglePicker()" ${free.length?"":"disabled"}>➕ Přidat graf</button>
+    <button class="btn-mini" onclick="homeToggleEdit()">${homeEdit?"✔ Hotovo":"✏️ Upravit grafy"}</button></div>`;
+  if(homePicker && free.length){
+    html += `<div class="home-picker">` + free.map(id=>`<button onclick="homeAdd('${id}')"><b>${HOME_WIDGETS[id].title}</b><span>${HOME_WIDGETS[id].note}</span></button>`).join("") + `</div>`;
+  }
+  wrap.innerHTML = html;
+  if(typeof Chart === "undefined") return;
+  ids.forEach(id=>{
+    let cfg = null; try{ cfg = HOME_WIDGETS[id].build(); }catch(e){ cfg = null; }
+    const cv = document.getElementById("hc_"+id);
+    if(!cfg){ cv.style.display="none"; document.getElementById("hn_"+id).style.display="block"; return; }
+    homeChartInst[id] = new Chart(cv.getContext("2d"), { type:cfg.type, data:cfg.data, options:cfg.opts });
+  });
+}
+
 /* ============================================================
    GRAF — vývoj síly a běžecké výkonnosti (Chart.js)
    ============================================================ */
@@ -4008,6 +4432,8 @@ function init(){
   document.getElementById("formView").addEventListener("change", scheduleAutosave);
   window.addEventListener("resize", refreshOpenHeights);
   checkBackupReminder();
+  gdInit();
+  switchTab("home");
 }
 init();
 
