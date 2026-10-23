@@ -3840,10 +3840,14 @@ function backupFromBanner(){
 function buildBackupObject(){
   return { exportedAt: new Date().toISOString(), appVersion: 7, config: CONFIG, sports: SPORTS, records: records, profile: PROFILE, pinned: pinnedRows, bodyLog: bodyLog, bpLog: bpLog, sleepLog: sleepLog, breakLog: breakLog, fatigueScale: 2 };
 }
+function backupStamp(){
+  const d = new Date(), z = n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())+"_"+z(d.getHours())+"-"+z(d.getMinutes());
+}
 function exportBackup(){
   const backup = buildBackupObject();
   const json = JSON.stringify(backup, null, 2);
-  const filename = `trenink_zaloha_${new Date().toISOString().slice(0,10)}.txt`;
+  const filename = `trenink_zaloha_${backupStamp()}.txt`;
   const blob = new Blob([json], {type:"text/plain"});
   markBackupDone();
   if(navigator.share){
