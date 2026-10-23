@@ -362,13 +362,6 @@
     </div>
   </div>
 
-  <div id="gdRestoreBanner" class="backup-banner" style="display:none">
-    <span>☁️ Appka je prázdná. Máš zálohu na Google Disku? Můžeš z ní data obnovit.</span>
-    <div style="display:flex;gap:6px;flex:none">
-      <button onclick="gdRestoreFromBanner()">📥 Obnovit</button>
-      <button class="dismiss" onclick="gdDismissRestoreBanner()">✕</button>
-    </div>
-  </div>
   <div id="backupBanner" class="backup-banner" style="display:none">
     <span id="backupBannerText"></span>
     <div style="display:flex;gap:6px;flex:none">
@@ -469,10 +462,11 @@
           <button class="btn-mini" onclick="document.getElementById('importFile').click()">📥 Import z Disk</button>
         </div>
         <input type="file" id="importFile" style="display:none" onchange="importBackupFile(this)">
-        <div class="subgroup-title" style="margin-top:16px">☁️ Záloha na Google Disk (automatická)</div>
-        <div class="section-note" style="margin-top:0" id="gdStatus"></div>
-        <div id="gdClientRow" style="display:none;margin-bottom:8px"><input type="text" id="gdClientInput" placeholder="Client ID (…apps.googleusercontent.com)" style="width:100%;box-sizing:border-box"></div>
-        <div class="toolbar-row" id="gdButtons"></div>
+        <div class="toolbar-row" style="margin-top:12px;align-items:center;gap:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem"><input type="checkbox" id="remindOn" onchange="saveRemindSettings()"> 🔔 Večerní připomínka zálohy v</label>
+          <select id="remindHour" onchange="saveRemindSettings()" style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px"></select>
+        </div>
+        <div class="section-note">Po nastavené hodině ti appka při otevření ukáže upozornění, pokud se od poslední zálohy něco změnilo. Appka na webu nemůže poslat upozornění sama od sebe, když je zavřená — proto se ukáže až při otevření. Chceš-li skutečné upozornění na telefonu, nastav si v hodinách/kalendáři denní budík „Záloha deníku“.</div>
       </div>
     </div>
     <div id="histList"></div>
@@ -765,8 +759,7 @@
 
     <div class="section"><div class="section-body-inner">
       <div class="subgroup-title" style="margin-top:0">💾 Záloha dat</div>
-      <p class="help-p">Nahoře v Historii je "💾 Záloha dat" — Export (uloží zálohu jako soubor .txt — je to čitelný text/JSON, appka si s tím poradí, jen kvůli spolehlivějšímu sdílení na Androidu nemá příponu .json) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává, appka přijme jak .txt, tak i starší .json soubory). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené, tělesné míry a fotky, tlak/tep i spánek z Profilu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
-      <p class="help-p"><b>☁️ Záloha na Google Disk.</b> V Historii pod "Záloha dat" se appka dá připojit k tvému Google Disku. Záloha se pak dělá sama krátce po každém uložení (do skryté složky appky na tvém Disku — jinde ji neuvidíš a nikdo jiný k ní nemá přístup). Smazání dat prohlížeče už tě tedy nezruinuje: prázdná appka nabídne "Obnovit z Disku". Appka záměrně nikdy nepřepíše větší zálohu na Disku prázdnými nebo menšími daty — zastaví se a upozorní tě. Každý den se uloží i snapshot (drží se posledních 14), takže jde vrátit starší stav přes "Starší verze". Když se automatická záloha nemůže přihlásit sama, počká a dokončí se při dalším klepnutí v appce. Ruční export souboru zůstává jako druhá pojistka.</p>
+      <p class="help-p">Nahoře v Historii je "💾 Záloha dat" — Export (uloží zálohu jako soubor .txt — je to čitelný text/JSON, appka si s tím poradí, jen kvůli spolehlivějšímu sdílení na Androidu nemá příponu .json) a Import (načte zálohu zpět — sloučí podle ID, novější verze vyhrává, appka přijme jak .txt, tak i starší .json soubory). Export/Import zálohy otevře standardní nabídku sdílení/výběru souboru; Export na Disk / Import z Disk je to samé, jen rovnou počítej s tím, že si v té nabídce vybereš Disk (Google Drive). Záloha obsahuje úplně všechno: cviky, sporty, záznamy, profil, připnuté oblíbené, tělesné míry a fotky, tlak/tep i spánek z Profilu. Večer (výchozí 20:00, jde změnit nebo vypnout v Historii → Záloha dat) ti appka při otevření ukáže připomínku "Zálohuj", pokud se od poslední zálohy něco změnilo — klepnutí na Zálohovat otevře nabídku sdílení, kde vybereš Disk. Skutečné upozornění při zavřené appce web neumí, na to si dej budík v telefonu. Dělej zálohu pravidelně, hlavně před přenosem appky na novou adresu — a hlavně pokud máš uložené fotky, protože ty zabírají nejvíc místa a jsou nejcitlivější na ztrátu.</p>
     </div></div>
   </div>
 
@@ -3784,24 +3777,60 @@ function getLastBackupDate(){
   const iso = localStorage.getItem(LAST_BACKUP_KEY);
   return iso ? new Date(iso) : null;
 }
-function markBackupDone(){ localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString()); }
+const BACKUP_SIG_KEY = "trenink_backup_sig_v1";
+const REMIND_KEY = "trenink_backup_remind_v1";
+function backupSignature(){
+  const o = buildBackupObject(); delete o.exportedAt;
+  const str = JSON.stringify(o); let h = 5381;
+  for(let i=0;i<str.length;i++){ h = ((h<<5)+h + str.charCodeAt(i)) | 0; }
+  return str.length+":"+h;
+}
+function markBackupDone(){
+  localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+  try{ localStorage.setItem(BACKUP_SIG_KEY, backupSignature()); }catch(e){}
+}
+function getRemindSettings(){
+  try{ const v = JSON.parse(localStorage.getItem(REMIND_KEY)||"null"); if(v && typeof v.hour==="number") return v; }catch(e){}
+  return { on:true, hour:20 };
+}
+function saveRemindSettings(){
+  const on = document.getElementById("remindOn").checked, hour = parseInt(document.getElementById("remindHour").value)||20;
+  try{ localStorage.setItem(REMIND_KEY, JSON.stringify({on,hour})); }catch(e){}
+  document.getElementById("remindHour").disabled = !on;
+  if(on) localStorage.removeItem("trenink_backup_snooze");
+  checkBackupReminder();
+  showToast(on ? "Připomínka nastavena na "+hour+":00 ✓" : "Připomínka vypnuta");
+}
+function renderRemindSettings(){
+  const st = getRemindSettings(), sel = document.getElementById("remindHour"); if(!sel) return;
+  if(!sel.options.length) for(let h=16;h<=23;h++){ const o=document.createElement("option"); o.value=h; o.textContent=h+":00"; sel.appendChild(o); }
+  sel.value = st.hour; document.getElementById("remindOn").checked = st.on; sel.disabled = !st.on;
+}
+/* Připomínka zálohy: po nastavené hodině, pokud se od poslední zálohy něco změnilo. Ukáže se při otevření/návratu do appky. */
 function checkBackupReminder(){
-  if(records.length === 0) return;
-  if(sessionStorage.getItem("trenink_backup_dismissed")) return;
+  const banner = document.getElementById("backupBanner"); if(!banner) return;
+  const st = getRemindSettings();
+  const now = new Date();
+  const snooze = parseInt(localStorage.getItem("trenink_backup_snooze")||"0");
   const last = getLastBackupDate();
   const daysSince = last ? (Date.now()-last.getTime())/(1000*60*60*24) : Infinity;
-  if(daysSince >= 7){
-    const banner = document.getElementById("backupBanner");
-    const text = document.getElementById("backupBannerText");
-    text.textContent = last
-      ? `⚠️ Poslední záloha před ${Math.floor(daysSince)} dny — stáhni novou, ať o data nepřijdeš.`
-      : "⚠️ Ještě jsi nikdy neudělal zálohu dat — udělej ji teď, ať o data nepřijdeš.";
-    banner.style.display = "flex";
-  }
+  if(records.length === 0){ banner.style.display = "none"; return; }
+  let changed = true;
+  try{ changed = localStorage.getItem(BACKUP_SIG_KEY) !== backupSignature(); }catch(e){}
+  const todayStr = now.toISOString().slice(0,10);
+  const lastToday = last && last.toLocaleDateString("sv")===now.toLocaleDateString("sv");
+  let msg = "";
+  if(st.on && now.getHours() >= st.hour && changed && !lastToday) msg = "🔔 Večerní záloha: dnes jsi ještě nezálohoval — dej Zálohovat a v nabídce vyber Disk.";
+  else if(daysSince >= 7 && changed) msg = last ? `⚠️ Poslední záloha před ${Math.floor(daysSince)} dny — stáhni novou, ať o data nepřijdeš.` : "⚠️ Ještě jsi nikdy neudělal zálohu dat — udělej ji teď, ať o data nepřijdeš.";
+  if(!msg || Date.now() < snooze){ banner.style.display = "none"; return; }
+  document.getElementById("backupBannerText").textContent = msg;
+  banner.style.display = "flex";
 }
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) checkBackupReminder(); });
+setInterval(()=>{ if(!document.hidden) checkBackupReminder(); }, 5*60*1000);
 function dismissBackupBanner(){
   document.getElementById("backupBanner").style.display = "none";
-  sessionStorage.setItem("trenink_backup_dismissed", "1");
+  try{ localStorage.setItem("trenink_backup_snooze", String(Date.now()+3*3600*1000)); }catch(e){}
 }
 function backupFromBanner(){
   exportBackup();
@@ -3909,253 +3938,6 @@ function importBackupFile(inputEl){
     inputEl.value = "";
   };
   reader.readAsText(file);
-}
-
-/* ============================================================
-   ZÁLOHA NA GOOGLE DISK (skrytá složka appDataFolder, scope drive.appdata)
-   Žádný server — appka mluví přímo s Googlem. Data jsou jen na tvém Disku.
-   ============================================================ */
-const GDRIVE_CLIENT_ID_DEFAULT = ""; // sem vlož Client ID z Google Cloud (…apps.googleusercontent.com) — pak stačí 1 klepnutí na Připojit
-const GD_KEY = "trenink_gdrive_v1";
-const GD_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
-const GD_LATEST = "trenink_zaloha_latest.json";
-const GD_SNAP_PREFIX = "trenink_snap_";
-const GD_SNAP_KEEP = 14;
-let gdState = (()=>{ try{ return JSON.parse(localStorage.getItem(GD_KEY)||"{}")||{}; }catch(e){ return {}; } })();
-let gdToken = null, gdTokenExp = 0, gdTokenClient = null, gdBusy = false, gdSuspend = false, gdTimer = null, gdRemote = null;
-function gdSave(){ try{ localStorage.setItem(GD_KEY, JSON.stringify(gdState)); }catch(e){} }
-function gdClientId(){ return (GDRIVE_CLIENT_ID_DEFAULT || gdState.clientId || "").trim(); }
-function gdLoadGis(){
-  if(window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
-  if(gdLoadGis._p) return gdLoadGis._p;
-  gdLoadGis._p = new Promise((res,rej)=>{
-    const sc = document.createElement("script");
-    sc.src = "https://accounts.google.com/gsi/client"; sc.async = true;
-    sc.onload = ()=> res();
-    sc.onerror = ()=>{ gdLoadGis._p = null; rej(new Error("Nepodařilo se načíst přihlášení Google (jsi online?)")); };
-    document.head.appendChild(sc);
-  });
-  return gdLoadGis._p;
-}
-/* interactive=true: smí otevřít okno Google (volat z klepnutí); false: tichá obnova tokenu */
-function gdGetToken(interactive, firstConsent){
-  if(gdToken && Date.now() < gdTokenExp - 60000) return Promise.resolve(gdToken);
-  const cid = gdClientId();
-  if(!cid) return Promise.reject(new Error("Chybí Client ID"));
-  return gdLoadGis().then(()=> new Promise((res,rej)=>{
-    let done = false;
-    const finish = (fn,v)=>{ if(!done){ done = true; clearTimeout(to); fn(v); } };
-    const to = setTimeout(()=> finish(rej, new Error("silent-timeout")), interactive ? 120000 : 8000);
-    gdTokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: cid, scope: GD_SCOPE,
-      callback: (r)=>{
-        if(r && r.access_token){
-          gdToken = r.access_token; gdTokenExp = Date.now() + (parseInt(r.expires_in)||3600)*1000;
-          finish(res, gdToken);
-        } else finish(rej, new Error((r && (r.error_description||r.error)) || "Přihlášení se nezdařilo"));
-      },
-      error_callback: (e)=> finish(rej, new Error((e && (e.type||e.message)) || "Přihlášení zrušeno"))
-    });
-    gdTokenClient.requestAccessToken({ prompt: firstConsent ? "consent" : (interactive ? "" : "none") });
-  }));
-}
-async function gdApi(url, opts, interactive){
-  const tok = await gdGetToken(!!interactive);
-  const o = Object.assign({}, opts||{}); o.headers = Object.assign({Authorization:"Bearer "+tok}, o.headers||{});
-  let r = await fetch(url, o);
-  if(r.status === 401){ gdToken = null; const t2 = await gdGetToken(!!interactive); o.headers.Authorization = "Bearer "+t2; r = await fetch(url, o); }
-  if(!r.ok){ let t=""; try{ t = (await r.text()).slice(0,200); }catch(e){} throw new Error("Disk "+r.status+" "+t); }
-  return r;
-}
-async function gdList(q, interactive){
-  const url = "https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=100&orderBy=modifiedTime desc&fields=files(id,name,modifiedTime,appProperties)&q="+encodeURIComponent(q);
-  return (await (await gdApi(url,null,interactive)).json()).files || [];
-}
-async function gdFindLatest(interactive){
-  const f = await gdList("name='"+GD_LATEST+"' and trashed=false", interactive);
-  return f[0] || null;
-}
-function gdMultipart(meta, text){
-  const b = "gdb"+Math.random().toString(36).slice(2);
-  return { type:"multipart/related; boundary="+b,
-    body: "--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+"\r\n--"+b+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+text+"\r\n--"+b+"--" };
-}
-async function gdUpload(existing, text, props, interactive){
-  const meta = { appProperties: props };
-  let url, method;
-  if(existing){ url = "https://www.googleapis.com/upload/drive/v3/files/"+existing.id+"?uploadType=multipart&fields=id,modifiedTime"; method = "PATCH"; }
-  else { meta.name = GD_LATEST; meta.parents = ["appDataFolder"]; url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime"; method = "POST"; }
-  const mp = gdMultipart(meta, text);
-  return (await gdApi(url, { method, headers:{"Content-Type":mp.type}, body:mp.body }, interactive)).json();
-}
-/* Denní snapshot: před přepsáním zkopíruje dosavadní „latest“ (pokud je z jiného dne), udržuje posledních GD_SNAP_KEEP */
-async function gdSnapshot(existing, interactive){
-  if(!existing) return;
-  const day = (existing.modifiedTime||"").slice(0,10); if(!day) return;
-  const name = GD_SNAP_PREFIX+day+".json";
-  const snaps = await gdList("name contains '"+GD_SNAP_PREFIX+"' and trashed=false", interactive);
-  if(!snaps.some(f=>f.name===name) && day !== new Date().toISOString().slice(0,10)){
-    await gdApi("https://www.googleapis.com/drive/v3/files/"+existing.id+"/copy", { method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ name, parents:["appDataFolder"], appProperties: existing.appProperties||{} }) }, interactive);
-    snaps.push({name});
-  }
-  const sorted = snaps.filter(f=>f.id).sort((a,b)=> b.name.localeCompare(a.name));
-  for(const f of sorted.slice(GD_SNAP_KEEP)){ try{ await gdApi("https://www.googleapis.com/drive/v3/files/"+f.id, {method:"DELETE"}, interactive); }catch(e){} }
-}
-function gdTotalCount(){ return records.length; }
-function gdSetStatus(msg){ gdState.statusMsg = msg; gdSave(); gdRenderUI(); }
-/* Hlavní zálohování. manual=true: z tlačítka (smí se zeptat a otevřít okno Google) */
-async function gdBackupNow(manual){
-  if(gdBusy || !gdState.connected) return;
-  gdBusy = true; gdRenderUI();
-  try{
-    const existing = await gdFindLatest(manual);
-    const remoteCount = existing && existing.appProperties ? (parseInt(existing.appProperties.recordCount)||0) : 0;
-    const localCount = gdTotalCount();
-    if(existing && localCount === 0 && remoteCount > 0){
-      gdState.conflict = true; gdSetStatus("⛔ Appka je prázdná, na Disku je záloha ("+remoteCount+" záznamů) — NEPŘEPISUJI ji. Použij „Obnovit z Disku“.");
-      return;
-    }
-    if(existing && localCount < remoteCount){
-      if(!manual){
-        gdState.conflict = true; gdSetStatus("⚠️ Na Disku je záloha s víc záznamy ("+remoteCount+") než tady ("+localCount+") — automatika pozastavena. Zkontroluj a zvol Zálohovat teď nebo Obnovit.");
-        return;
-      }
-      if(!confirm("Na Disku je záloha s "+remoteCount+" záznamy, tady jen "+localCount+". Opravdu ji přepsat menší verzí? (Starší verze zůstanou jako denní snapshoty.)")) return;
-    }
-    await gdSnapshot(existing, manual);
-    const props = { recordCount: String(localCount), appVersion: "7", device: (navigator.userAgent||"").slice(0,60) };
-    const text = JSON.stringify(buildBackupObject());
-    await gdUpload(existing, text, props, manual);
-    gdState.conflict = false; gdState.dirty = false; gdState.pending = false;
-    gdState.lastOk = new Date().toISOString(); gdState.lastCount = localCount; gdState.statusMsg = "";
-    gdSave(); markBackupDone();
-    if(manual) showToast("Zálohováno na Google Disk ✓");
-    gdRefreshRemote();
-  }catch(err){
-    if(manual){ showToast("Záloha na Disk selhala: "+(err.message||err), 4500); }
-    else { gdState.pending = true; gdSave(); }
-    gdState.statusMsg = manual ? "❌ "+(err.message||err) : "⏳ Čeká na přihlášení — klepni kamkoli v appce, záloha se dokončí.";
-    gdSave();
-  }finally{ gdBusy = false; gdRenderUI(); }
-}
-async function gdRefreshRemote(){
-  if(!gdState.connected) return;
-  try{ const f = await gdFindLatest(false); gdRemote = f; }catch(e){ /* tiše */ }
-  gdRenderUI();
-}
-function gdMarkDirty(){
-  if(gdSuspend || !gdState.connected) return;
-  gdState.dirty = true; gdSave();
-  clearTimeout(gdTimer); gdTimer = setTimeout(()=> gdAutoBackup(), 15000);
-}
-function gdAutoBackup(){
-  if(!gdState.connected || gdBusy || gdState.conflict) return;
-  if(!(gdToken && Date.now() < gdTokenExp-60000)){
-    // tichá obnova tokenu; když to nejde bez klepnutí, počká se na další gesto
-    gdGetToken(false).then(()=> gdBackupNow(false)).catch(()=>{ gdState.pending = true; gdState.statusMsg = "⏳ Čeká na přihlášení — klepni kamkoli v appce, záloha se dokončí."; gdSave(); gdRenderUI(); });
-    return;
-  }
-  gdBackupNow(false);
-}
-document.addEventListener("pointerdown", ()=>{
-  if(gdState.connected && gdState.pending && !gdBusy && !gdState.conflict){
-    gdGetToken(true).then(()=> gdBackupNow(false)).catch(()=>{});
-  }
-}, {passive:true});
-/* Připojení (z klepnutí) */
-async function gdConnect(){
-  if(!gdClientId()){
-    const v = (document.getElementById("gdClientInput")||{}).value;
-    if(!v || !/\.apps\.googleusercontent\.com$/.test(v.trim())){ showToast("Vlož Client ID ve tvaru …apps.googleusercontent.com", 3500); return; }
-    gdState.clientId = v.trim(); gdSave();
-  }
-  try{
-    await gdGetToken(true, true);
-    gdState.connected = true; gdState.conflict = false; gdSave();
-    const existing = await gdFindLatest(true);
-    gdRemote = existing;
-    if(existing && records.length === 0){
-      if(confirm("Na Disku je záloha ("+((existing.appProperties||{}).recordCount||"?")+" záznamů). Obnovit ji do appky?")){ await gdRestore(existing); return; }
-    }
-    showToast("Google Disk připojen ✓");
-    await gdBackupNow(true);
-  }catch(err){ showToast("Připojení selhalo: "+(err.message||err), 4500); }
-  gdRenderUI();
-}
-function gdDisconnect(){
-  if(!confirm("Odpojit Google Disk? Záloha na Disku zůstane, appka jen přestane zálohovat automaticky.")) return;
-  try{ if(gdToken && window.google) google.accounts.oauth2.revoke(gdToken, ()=>{}); }catch(e){}
-  gdToken = null; gdTokenExp = 0; gdState.connected = false; gdState.pending = false; gdState.conflict = false; gdState.statusMsg = ""; gdSave(); gdRenderUI();
-}
-async function gdRestore(file){
-  try{
-    if(!gdState.connected){ await gdGetToken(true, !gdToken); }
-    const f = file || await gdFindLatest(true);
-    if(!f){ showToast("Na Disku zatím žádná záloha není", 3500); return; }
-    const data = await (await gdApi("https://www.googleapis.com/drive/v3/files/"+f.id+"?alt=media", null, true)).json();
-    const n = Array.isArray(data.records) ? data.records.length : 0;
-    if(!confirm("Obnovit zálohu z Disku ("+n+" záznamů, "+(f.modifiedTime||"").slice(0,16).replace("T"," ")+")? Sloučí se s daty v appce.")) return;
-    gdSuspend = true;
-    try{ applyBackupData(data); } finally{ gdSuspend = false; }
-    if(!gdState.connected){ gdState.connected = true; }
-    gdState.conflict = false; gdState.pending = false; gdState.statusMsg = ""; gdSave();
-    showToast("Obnoveno z Google Disku ✓ ("+n+" záznamů)", 3500);
-    gdRenderUI();
-    // po obnově se klidně zálohuje dál (počty už sedí)
-    gdMarkDirty();
-  }catch(err){ showToast("Obnova selhala: "+(err.message||err), 4500); }
-}
-async function gdRestoreChoose(){
-  try{
-    await gdGetToken(true, !gdToken);
-    const snaps = await gdList("name contains '"+GD_SNAP_PREFIX+"' and trashed=false", true);
-    if(!snaps.length){ showToast("Starší denní zálohy zatím nejsou (vznikají při dalším dni zálohování)", 4000); return; }
-    const list = snaps.slice().sort((a,b)=> b.name.localeCompare(a.name));
-    const txt = list.map((f,i)=> (i+1)+") "+f.name.replace(GD_SNAP_PREFIX,"").replace(".json","")+" ("+((f.appProperties||{}).recordCount||"?")+" záznamů)").join("\n");
-    const ans = prompt("Starší verze (stav na konci daného dne). Napiš číslo:\n"+txt);
-    const idx = parseInt(ans)-1;
-    if(isNaN(idx) || !list[idx]) return;
-    await gdRestore(list[idx]);
-  }catch(err){ showToast("Chyba: "+(err.message||err), 4500); }
-}
-function gdFmt(iso){ if(!iso) return "—"; const d = new Date(iso); return d.toLocaleDateString("cs-CZ")+" "+d.toLocaleTimeString("cs-CZ",{hour:"2-digit",minute:"2-digit"}); }
-function gdRenderUI(){
-  const st = document.getElementById("gdStatus"); if(!st) return;
-  const btns = document.getElementById("gdButtons"), cr = document.getElementById("gdClientRow");
-  const hasCid = !!gdClientId();
-  cr.style.display = (!hasCid && !gdState.connected) ? "block" : "none";
-  let html;
-  if(!gdState.connected){
-    html = hasCid ? "Nepřipojeno. Po připojení se záloha dělá sama po každém uložení a data zůstanou na tvém Disku i po smazání dat prohlížeče." : "Nepřipojeno. Nejdřív vlož Client ID z Google Cloud (návod ti dám zvlášť).";
-    btns.innerHTML = `<button class="btn-mini" onclick="gdConnect()">☁️ Připojit Google Disk</button><button class="btn-mini" onclick="gdRestore()">📥 Obnovit z Disku</button>`;
-  } else {
-    html = `✅ Připojeno. Poslední záloha: <b>${gdFmt(gdState.lastOk)}</b>${gdState.lastCount!=null?` (${gdState.lastCount} záznamů)`:""}.`;
-    if(gdRemote) html += `<br>Na Disku: ${gdFmt(gdRemote.modifiedTime)}, ${(gdRemote.appProperties||{}).recordCount||"?"} záznamů.`;
-    if(gdState.dirty && !gdState.pending && !gdBusy) html += `<br>⏱ Změny se zálohují za chvíli…`;
-    btns.innerHTML = `<button class="btn-mini" onclick="gdBackupNow(true)">☁️ Zálohovat teď</button><button class="btn-mini" onclick="gdRestore()">📥 Obnovit z Disku</button><button class="btn-mini" onclick="gdRestoreChoose()">🕓 Starší verze</button><button class="btn-mini" onclick="gdDisconnect()">🔌 Odpojit</button>`;
-  }
-  if(gdBusy) html += `<br>⏳ Pracuju s Diskem…`;
-  if(gdState.statusMsg) html += `<br>${gdState.statusMsg}`;
-  st.innerHTML = html;
-  gdCheckRestoreBanner();
-}
-function gdCheckRestoreBanner(){
-  const el = document.getElementById("gdRestoreBanner"); if(!el) return;
-  const show = !gdState.connected && records.length === 0 && !!gdClientId() && !sessionStorage.getItem("trenink_gd_banner_dismissed");
-  el.style.display = show ? "flex" : "none";
-}
-function gdDismissRestoreBanner(){ sessionStorage.setItem("trenink_gd_banner_dismissed","1"); gdCheckRestoreBanner(); }
-function gdRestoreFromBanner(){ gdConnect(); }
-function gdInit(){
-  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
-  ["persistRecords","persistConfig","persistSports","persistProfile","persistPinned","persistBodyLog","persistBpLog","persistSleepLog","persistBreakLog"].forEach(n=>{
-    const o = window[n]; if(typeof o !== "function") return;
-    window[n] = function(){ const r = o.apply(this, arguments); gdMarkDirty(); return r; };
-  });
-  gdRenderUI();
-  if(gdState.connected && (gdState.dirty || gdState.pending)){ gdState.pending = true; gdSave(); }
-  if(gdState.connected) gdRefreshRemote();
 }
 
 /* ============================================================
@@ -4432,7 +4214,7 @@ function init(){
   document.getElementById("formView").addEventListener("change", scheduleAutosave);
   window.addEventListener("resize", refreshOpenHeights);
   checkBackupReminder();
-  gdInit();
+  renderRemindSettings();
   switchTab("home");
 }
 init();
