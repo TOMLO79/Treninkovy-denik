@@ -635,9 +635,14 @@
         <div class="section-note" style="margin-top:0">Samostatný log — na rozdíl od spánku u jednotlivého tréninku sem zapisuješ každý den, i ten kdy necvičíš, ať v datech nejsou díry.</div>
         <div class="bodylog-form">
           <div class="bodylog-metric-grid">
-            <div class="field"><label>Datum</label><input type="date" id="sleepDate"></div>
-            <div class="field"><label>Hodiny</label><input type="number" step="0.25" inputmode="decimal" id="sleepHours" placeholder="např. 6.5"></div>
+            <div class="field"><label>Datum (ráno, kdy zapisuješ)</label><input type="date" id="sleepDate"></div>
+            <div class="field"><label>Hodiny spánku</label><input type="text" inputmode="decimal" id="sleepHours" placeholder="např. 6,5"></div>
           </div>
+          <div class="bodylog-metric-grid" style="margin-top:10px">
+            <div class="field"><label>Usnul (od)</label><input type="text" inputmode="numeric" id="sleepFrom" placeholder="2230" oninput="sleepCalcInto('sleepFrom','sleepTo','sleepHours')"></div>
+            <div class="field"><label>Vstal (do)</label><input type="text" inputmode="numeric" id="sleepTo" placeholder="0550" oninput="sleepCalcInto('sleepFrom','sleepTo','sleepHours')"></div>
+          </div>
+          <div class="section-note" style="margin-top:4px">Čas zadej bez dvojtečky, např. 2230 a 0550 → 22:30 až 5:50 (7,3 h). Hodiny se dopočítají samy, jdou ale zadat i ručně.</div>
           <div class="field" style="margin-top:10px"><label>Únava / odpočatost (1 = zničený, 10 = odpočatý)</label><input type="number" step="1" min="1" max="10" inputmode="numeric" id="sleepQuality" placeholder="1 = zničený · 10 = odpočatý"></div>
           <div class="field"><label>Poznámka</label><input type="text" id="sleepNote" placeholder="volitelné, např. brzy vstal"></div>
           <button type="button" class="btn btn-save" style="width:100%;margin-top:10px" onclick="addSleepEntry()"><span class="ic">💾</span>Přidat záznam</button>
@@ -753,7 +758,7 @@
       <p class="help-p">Výška, datum narození, pohlaví, klidová TF — appka z toho spočítá věk, BMI (s pásmy podváha/normální/nadváha/obezita), BMR, odhad denní kalorické potřeby a tréninkové zóny tepové frekvence. Váha se bere automaticky z posledního tréninku.</p>
       <p class="help-p"><b>📏 Tělesné míry a fotky</b> — nezávislý periodický log (nemusíš vyplňovat každý trénink, stačí třeba jednou za 1–2 týdny). Zapíšeš obvody (pas, hrudník, paže, stehno, boky) a/nebo přidáš fotky postavy — jeden záznam může mít víc fotek najednou (např. zezadu/zboku/zepředu), appka je sama zmenší a zkomprimuje, ať zbytečně nezabírají místo. Dole vidíš graf vývoje obvodů a chronologický seznam všech záznamů s náhledy fotek (klepnutím na náhled se otevře na celou obrazovku, křížkem u fotky smažeš jen tu jednu fotku). Tužtičkou ✏️ u záznamu jde kdykoliv zpětně opravit datum, míry i poznámku, fotky přitom zůstanou — nemusíš kvůli překlepu mazat celý záznam. Pozor: appka data ukládá jen v telefonu (localStorage), který má omezenou kapacitu — pokud by nešlo uložit další fotku, appka tě na to upozorní; pomůže smazat pár starších fotek nebo použít Zálohu (viz níže), která fotky/míry taky obsahuje.</p>
       <p class="help-p"><b>🩺 Tlak a tep</b> — samostatný log, oddělený od Tělesných měr, protože se měří jinak často (klidně víckrát denně) a je u něj důležitý i přesný čas, ne jen datum. Tlačítko "🕒 Nyní" rovnou vyplní aktuální datum i čas, ať to nemusíš přepisovat ručně — datum/čas si ale klidně uprav, pokud zapisuješ zpětně. Zapíšeš systolu, diastolu a/nebo tep — stačí i jen některé z nich. Měř ideálně vždy ve stejnou dobu a v klidu (ne hned po tréninku), ať je trend mezi měřeními srovnatelný. Graf i tužtička na zpětnou editaci fungují stejně jako u Tělesných měr.</p>
-      <p class="help-p"><b>😴 Spánek</b> — samostatný denní log, nezávislý na tréninku. Rozdíl oproti "Spánek" v Hlavičce tréninku: appka teď u zápisu spánku k tréninku počítá s tím, že to je "kolik jsi spal před tímhle konkrétním cvičením" — pokud ale den vynecháš (a chceš třeba schválně vyspat), do tréninkového deníku se ten den nic nezapíše. Tenhle nový blok je na to, abys spánek zapisoval úplně každý den, ať cvičíš, nebo ne. Kromě hodin appka umí i subjektivní únavu/odpočatost (1 = zničený, 10 = plně odpočatý — stejná škála jako v Hlavičce tréninku) — hodiny a odpočatost spolu nemusí souviset (7 hodin přerušovaného spánku může být horší než 6 hodin v kuse), takže je dobré sledovat obojí zvlášť. V grafu jsou hodiny jako sloupce (červená pod 6h, žlutá 6–7h, zelená 7h+) a odpočatost jako fialová přerušovaná čára navrch. Záznamy se sem zakládají i samy z Hlavičky tréninku (viz Hlavička).</p>
+      <p class="help-p"><b>😴 Spánek</b> — samostatný denní log, nezávislý na tréninku. Rozdíl oproti "Spánek" v Hlavičce tréninku: appka teď u zápisu spánku k tréninku počítá s tím, že to je "kolik jsi spal před tímhle konkrétním cvičením" — pokud ale den vynecháš (a chceš třeba schválně vyspat), do tréninkového deníku se ten den nic nezapíše. Tenhle nový blok je na to, abys spánek zapisoval úplně každý den, ať cvičíš, nebo ne. Čas spánku můžeš zadat třemi způsoby: rovnou hodiny (např. 6,5 — s čárkou), nebo čas Usnul (od) a Vstal (do) bez dvojtečky, např. 2230 a 0550 → appka zobrazí 22:30–5:50 a hodiny si dopočítá sama (7,3 h, zaokrouhleno na desetinu). Zapisuješ vždy ráno: "od" bere jako večer před (nebo brzy ráno téhož dne, např. 0030), "do" jako dnešní ráno. Dopočtené hodiny můžeš ještě ručně přepsat. Kromě hodin appka umí i subjektivní únavu/odpočatost (1 = zničený, 10 = plně odpočatý — stejná škála jako v Hlavičce tréninku) — hodiny a odpočatost spolu nemusí souviset (7 hodin přerušovaného spánku může být horší než 6 hodin v kuse), takže je dobré sledovat obojí zvlášť. V grafu jsou hodiny jako sloupce (červená pod 6h, žlutá 6–7h, zelená 7h+) a odpočatost jako fialová přerušovaná čára navrch. Záznamy se sem zakládají i samy z Hlavičky tréninku (viz Hlavička).</p>
       <p class="help-p"><b>⏸️ Přerušení</b> — v záložce Zdraví. Zapíšeš tam období, kdy jsi necvičil — ať už plánovaná pauza, nebo nemoc/zranění. Jeden záznam je jedno období (Od–Do); "Do" nech prázdné, pokud pauza ještě trvá, appka to pak v seznamu zvýrazní jako "aktuálně". Typ (Plánovaná pauza/Nemoc/Zranění/Jiné) + volitelná poznámka. Hodí se to hlavně jako zpětný kontext, proč v Historii najednou vidíš mezeru — ať za pár měsíců nehádáš, jestli jsi jen líný, nebo jsi byl fakt nemocný.</p>
     </div></div>
 
@@ -1462,7 +1467,7 @@ function syncSleepFromRecord(rec){
   let entry = sleepLog.find(e=>e.date===date && e.src==="training") || sleepLog.find(e=>e.date===date);
   let changed = false;
   if(!entry){ entry = { id: Date.now(), date, src:"training" }; sleepLog.push(entry); changed = true; }
-  if(!isNaN(hours) && entry.hours!==hours){ entry.hours = hours; changed = true; }
+  if(!isNaN(hours) && entry.hours!==hours){ entry.hours = hours; delete entry.from; delete entry.to; changed = true; }
   if(!isNaN(quality) && entry.quality!==quality){ entry.quality = quality; changed = true; }
   if(note && entry.note!==note){ entry.note = note; changed = true; }
   if(changed){ sortSleepLog(); persistSleepLog(); }
@@ -1568,7 +1573,36 @@ function persistSleepLog(){
   catch(e){ return false; }
 }
 function sortSleepLog(){ sleepLog.sort((a,b)=> (a.date||"").localeCompare(b.date||"")); }
+/* čas ve tvaru 2230 / 22:30 / 22.30 / 550 / 22 → {h,m} nebo null */
+function parseHM(str){
+  const d = String(str||"").replace(/\D/g,"");
+  if(!d || d.length>4) return null;
+  let h, m;
+  if(d.length<=2){ h = parseInt(d,10); m = 0; }
+  else { h = parseInt(d.slice(0,d.length-2),10); m = parseInt(d.slice(-2),10); }
+  if(isNaN(h) || h>23 || m>59) return null;
+  return {h,m};
+}
+function fmtHM(t){ return t.h+":"+String(t.m).padStart(2,"0"); }
+function storeHM(t){ return String(t.h).padStart(2,"0")+":"+String(t.m).padStart(2,"0"); }
+/* délka spánku v hodinách (1 des. místo) — "od" je večer před / brzy ráno, "do" je ráno zapisovaného dne */
+function sleepDuration(from, to){
+  const f = parseHM(from), t = parseHM(to);
+  if(!f || !t) return null;
+  const fm = f.h*60+f.m, tm = t.h*60+t.m;
+  if(fm===tm) return null;
+  const diff = tm>fm ? tm-fm : 24*60-fm+tm;
+  return Math.round(diff/6)/10;
+}
+function fmtHours(h){ return (h==null || isNaN(h)) ? "" : String(h).replace(".",","); }
+function parseHours(v){ const n = parseFloat(String(v).trim().replace(",",".")); return isNaN(n) ? null : n; }
+function sleepCalcInto(fromId, toId, hoursId){
+  const d = sleepDuration(document.getElementById(fromId).value, document.getElementById(toId).value);
+  if(d!=null) document.getElementById(hoursId).value = fmtHours(d);
+}
 function clearSleepForm(){
+  const f0 = document.getElementById("sleepFrom"); if(f0) f0.value = "";
+  const t0 = document.getElementById("sleepTo"); if(t0) t0.value = "";
   const h = document.getElementById("sleepHours"); if(h) h.value = "";
   const q = document.getElementById("sleepQuality"); if(q) q.value = "";
   const n = document.getElementById("sleepNote"); if(n) n.value = "";
@@ -1576,12 +1610,17 @@ function clearSleepForm(){
 }
 function addSleepEntry(){
   const date = document.getElementById("sleepDate").value || new Date().toISOString().slice(0,10);
-  const hours = document.getElementById("sleepHours").value;
+  const hoursRaw = document.getElementById("sleepHours").value;
+  const fromRaw = document.getElementById("sleepFrom").value, toRaw = document.getElementById("sleepTo").value;
   const quality = document.getElementById("sleepQuality").value;
   const note = document.getElementById("sleepNote").value;
-  if(hours==="" && quality==="" && !note.trim()){ showToast("Vyplň aspoň hodiny nebo kvalitu"); return; }
+  if((fromRaw.trim()!=="" || toRaw.trim()!=="") && sleepDuration(fromRaw,toRaw)==null){ showToast("Čas od–do zadej např. 2230 a 0550", 3000); return; }
+  let hours = parseHours(hoursRaw);
+  if(hours==null) hours = sleepDuration(fromRaw,toRaw);
+  if(hours==null && quality==="" && !note.trim()){ showToast("Vyplň aspoň hodiny nebo kvalitu"); return; }
   const entry = { id: Date.now(), date };
-  if(hours!=="") entry.hours = parseFloat(hours);
+  if(hours!=null) entry.hours = hours;
+  if(sleepDuration(fromRaw,toRaw)!=null){ entry.from = storeHM(parseHM(fromRaw)); entry.to = storeHM(parseHM(toRaw)); }
   if(quality!=="") entry.quality = parseFloat(quality);
   if(note.trim()) entry.note = note.trim();
   sleepLog.push(entry);
@@ -1597,7 +1636,13 @@ function toggleSleepEdit(id){ editingSleepId = editingSleepId===id ? null : id; 
 function saveSleepEdit(id){
   const e = sleepLog.find(x=>x.id===id); if(!e) return;
   const dEl = document.getElementById("sleepEditDate_"+id); if(dEl && dEl.value) e.date = dEl.value;
-  const hEl = document.getElementById("sleepEditHours_"+id); if(hEl){ if(hEl.value!=="") e.hours=parseFloat(hEl.value); else delete e.hours; }
+  const fEl = document.getElementById("sleepEditFrom_"+id), tEl = document.getElementById("sleepEditTo_"+id);
+  if(fEl && tEl){
+    if(sleepDuration(fEl.value,tEl.value)!=null){ e.from = storeHM(parseHM(fEl.value)); e.to = storeHM(parseHM(tEl.value)); }
+    else if(fEl.value.trim()==="" && tEl.value.trim()===""){ delete e.from; delete e.to; }
+    else { showToast("Čas od–do zadej např. 2230 a 0550", 3000); return; }
+  }
+  const hEl = document.getElementById("sleepEditHours_"+id); if(hEl){ const hv = parseHours(hEl.value); if(hv!=null) e.hours=hv; else delete e.hours; }
   const qEl = document.getElementById("sleepEditQuality_"+id); if(qEl){ if(qEl.value!=="") e.quality=parseFloat(qEl.value); else delete e.quality; }
   const nEl = document.getElementById("sleepEditNote_"+id); if(nEl){ if(nEl.value.trim()) e.note=nEl.value.trim(); else delete e.note; }
   sortSleepLog();
@@ -1621,7 +1666,8 @@ function renderSleepList(){
   const sorted = [...sleepLog].sort((a,b)=> (b.date||"").localeCompare(a.date||""));
   host.innerHTML = sorted.map(e=>{
     const parts = [];
-    if(e.hours!=null) parts.push(e.hours+" h");
+    if(e.from && e.to) parts.push(fmtHM(parseHM(e.from))+"–"+fmtHM(parseHM(e.to)));
+    if(e.hours!=null) parts.push(fmtHours(e.hours)+" h");
     if(e.quality!=null) parts.push("odpočatost "+e.quality+"/10");
     if(e.note) parts.push(e.note);
     const summary = parts.length ? parts.join(" · ") : "–";
@@ -1638,7 +1684,9 @@ function renderSleepList(){
       <div class="bodylog-edit-panel">
         <div class="measure-fields">
           <div class="measure-field"><label>Datum</label><input type="date" id="sleepEditDate_${e.id}" value="${e.date||''}"></div>
-          <div class="measure-field"><label>Hodiny</label><input type="number" step="0.25" inputmode="decimal" id="sleepEditHours_${e.id}" value="${e.hours??''}"></div>
+          <div class="measure-field"><label>Usnul (od)</label><input type="text" inputmode="numeric" id="sleepEditFrom_${e.id}" value="${e.from? e.from.replace(':',''):''}" placeholder="2230" oninput="sleepCalcInto('sleepEditFrom_${e.id}','sleepEditTo_${e.id}','sleepEditHours_${e.id}')"></div>
+          <div class="measure-field"><label>Vstal (do)</label><input type="text" inputmode="numeric" id="sleepEditTo_${e.id}" value="${e.to? e.to.replace(':',''):''}" placeholder="0550" oninput="sleepCalcInto('sleepEditFrom_${e.id}','sleepEditTo_${e.id}','sleepEditHours_${e.id}')"></div>
+          <div class="measure-field"><label>Hodiny</label><input type="text" inputmode="decimal" id="sleepEditHours_${e.id}" value="${fmtHours(e.hours)}"></div>
           <div class="measure-field"><label>Odpočatost (1 = zničený, 10 = odpočatý)</label><input type="number" step="1" min="1" max="10" inputmode="numeric" id="sleepEditQuality_${e.id}" value="${e.quality??''}"></div>
         </div>
         <div class="field" style="margin-top:8px"><label>Poznámka</label><input type="text" id="sleepEditNote_${e.id}" value="${e.note||''}"></div>
