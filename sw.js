@@ -1,4 +1,4 @@
-const CACHE_NAME = "trenink-cache-v2";
+const CACHE_NAME = "trenink-cache-v3";
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -36,7 +36,7 @@ self.addEventListener("fetch", (event) => {
     // Hlavní appka: vždy nejdřív zkusit síť, ať se aktualizace projeví hned po otevření.
     // Cache slouží jen jako záloha, když není signál (offline použití).
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: "no-cache" })
         .then((resp) => {
           if (resp && resp.status === 200) {
             const clone = resp.clone();
